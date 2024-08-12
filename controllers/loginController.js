@@ -59,13 +59,13 @@ const loginController = async (req, res, next) => {
         });
       }
 
-      if(staff.status === 'removed'){
+      if (staff.status === "removed") {
         return res.status(401).json({
           success: false,
           status: "Login failed",
-          message: "You are removed from school. Contact school administrator for more info",
+          message:
+            "You are removed from school. Contact school administrator for more info",
         });
-
       }
 
       const hashedPassword = staff.password;

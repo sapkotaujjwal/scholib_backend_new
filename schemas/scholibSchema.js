@@ -10,13 +10,11 @@ const scholibSchema = new mongoose.Schema({
     minlength: [2, "Name should be at least of two characters"],
     maxlength: [80, "Name cannot excedd 80 characters"],
   },
-
   logo: {
     secure_url: {
       type: String,
     },
   },
-  
   loginId: {
     type: Number,
     unique: true,
