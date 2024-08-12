@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
 
 const ExamSchema = new mongoose.Schema({
-  // section: [{ type: mongoose.Schema.Types.ObjectId, ref: "SectionNew" }],
   term: [
     {
       termName: {
