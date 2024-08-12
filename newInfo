@@ -1,0 +1,10 @@
+    const course = await Course.findOne(
+      {
+        'course._id': classId,
+        'course.groups._id': groupId,
+        'course.groups.sections._id': sectionId,
+      },
+      {
+        'course.groups.sections.$': 1,
+      }
+    );
