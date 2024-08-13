@@ -62,102 +62,6 @@ const loginController = async (req, res, next) => {
   }
 };
 
-// create new school
-const createSchool = async (req, res, next) => {
-  try {
-    const school = req.body.school;
-    const company = await Company.findOne({ _id: process.env.COMPANY_ID });
-
-    //saving school to the database
-    const data = new School(school);
-
-    req.school = await data.save();
-    const schoolCode = req.school.schoolCode;
-    const galleyObj = {
-      schoolCode,
-    };
-    const examObj = {
-      schoolCode,
-    };
-    const accountObj = {
-      schoolCode,
-    };
-    const updateObj = {
-      schoolCode,
-    };
-    const courseObj = {
-      schoolCode,
-    };
-
-    const gallery = new Gallery(galleyObj);
-    await gallery.save();
-    const account = new Account(accountObj);
-    await account.save();
-    const update = new Update(updateObj);
-    await update.save();
-    const course = new Course(courseObj);
-    await course.save();
-    const exam = new Exam(examObj);
-    await exam.save();
-    company.noOfSchools++;
-
-    const schoolString = `${req.school.schoolCode} ${req.school.name} ${req.school.sName} ${req.school.sAddress}`;
-
-    const newSchoolObj = {
-      info: schoolString,
-      schoolCode: req.school.schoolCode,
-    };
-
-    company.schools.push(newSchoolObj);
-
-    await company.save();
-    next();
-  } catch (error) {
-    res.status(500).send({
-      success: false,
-      status: "School Failed to Save",
-      message: error.message,
-    });
-  }
-};
-
-// create new school admin
-const createSchoolAdmin = async (req, res, next) => {
-  try {
-    const schoolCode = req.body.schoolCode;
-    const school = await School.findOne({ schoolCode: schoolCode });
-
-    if (!school) {
-      return res.status(404).send({
-        success: false,
-        status: "Admin creation failed",
-        message: "School not found",
-      });
-    }
-
-    const adminData = req.body.adminStaff;
-    adminData.schoolCode = schoolCode;
-    adminData.paymentHistory = [];
-    adminData.absentdays = [];
-    adminData.tokens = [];
-    const newStaff = new Staff(adminData);
-    const createdStaff = await newStaff.save();
-    // Add the created staff member's _id and other related data to the school's staffs field
-    school.staffs.push(createdStaff);
-
-    // Save the updated school
-    const updatedSchool = await school.save();
-    req.school = updatedSchool;
-    next();
-  } catch (error) {
-    res.status(500).send({
-      success: false,
-      status: "Admin creation failed",
-      message: error.message,
-    });
-  }
-};
-
 //my new create new school with admin
 const createSchoolWithAdmin = async (req, res, next) => {
   try {
@@ -488,8 +392,6 @@ module.exports = {
   updateCompany,
   findCompany,
   loginController,
-  createSchool,
-  createSchoolAdmin,
   createSchoolWithAdmin,
   createCompany,
 };
