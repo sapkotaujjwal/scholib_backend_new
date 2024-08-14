@@ -4,7 +4,7 @@
 const Student = require("../schemas/studentSchema");
 const Exam = require("../schemas/examSchema");
 const Course = require("../schemas/courseSchema");
-const School = require("../schemas/schoolSchema");
+const {School} = require("../schemas/schoolSchema");
 
 // short hand to get the student
 const findStudent = (course, classId, groupId, sectionId, _id) => {

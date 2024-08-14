@@ -22,37 +22,32 @@ router.use(bodyParser.urlencoded({ extended: true }));
 
 //Creating new school with a admin staff
 router.post(
-    "/newSchool2",
-    upload.fields([
-      { name: "logo", maxCount: 1 },
-      { name: "images", maxCount: 4 },
-      { name: "pPhoto", maxCount: 1 },
-      { name: "principlePhoto", maxCount: 1 },
-    ]),
-    createSchoolWithAdmin,
-    (req, res) => {
-      res.status(200).send({
-        success: true,
-        status: "School Created Successfully",
-        message:
-          "School Code and admin login Id will be sent to your email You can Login using the credentials",
-      });
-    }
-  );
+  "/newSchool2",
+  upload.fields([
+    { name: "logo", maxCount: 1 },
+    { name: "images", maxCount: 4 },
+    { name: "pPhoto", maxCount: 1 },
+    { name: "principlePhoto", maxCount: 1 },
+  ]),
+  createSchoolWithAdmin,
+  (req, res) => {
+    res.status(200).send({
+      success: true,
+      status: "School Created Successfully",
+      message:
+        "School Code and admin login Id will be sent to your email You can Login using the credentials",
+    });
+  }
+);
 
 //find company
 router.get("/company", findCompany, (req, res) => {
-    const data = req.company;
-    res.status(200).send({
-      success: true,
-      data,
-    });
+  const data = req.company;
+  res.status(200).send({
+    success: true,
+    data,
   });
-
-
-
-
-
+});
 
 // ********************************************** Here we have our scholib routes which should better be kept commented **********************************************
 

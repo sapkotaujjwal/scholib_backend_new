@@ -17,7 +17,7 @@ router.use(bodyParser.urlencoded({ extended: true }));
 // get entire nepali date and time 
 
 router.get('/nepaliDate/v1', async (req,res)=>{
-    const data = await getCurrentNepaliDate ();
+    const data = getCurrentNepaliDate ();
   
     res.status(200).send({
       success: true,

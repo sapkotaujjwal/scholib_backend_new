@@ -1,6 +1,6 @@
 const cloudinary = require("../config/cloudinary");
 const Course = require("../schemas/courseSchema");
-const School = require("../schemas/schoolSchema");
+const { School } = require("../schemas/schoolSchema");
 const Staff = require("../schemas/staffSchema");
 const Gallery = require("../schemas/gallerySchema");
 const { photoWork } = require("../config/photoWork");
@@ -10,11 +10,6 @@ const Exam = require("../schemas/examSchema");
 const { sendMail } = require("../config/sendEmail");
 
 // const CourseHistory = require("../schemas/courseHistory");
-
-
-
-
-
 
 async function updateSchoolImages(req, res, next) {
   try {
@@ -133,7 +128,6 @@ const createCourse2 = async (req, res, next) => {
 };
 
 // Update our course next
-
 const updateCourseNext = async (req, res, next) => {
   try {
     const schoolCode = req.params.schoolCode;
@@ -500,102 +494,6 @@ const findSchoolAdmissions = async (req, res, next) => {
     return;
   }
 };
-
-// Suspend staff from school
-async function suspendStaff(req, res, next) {
-  try {
-    const admin = req.staff;
-
-    if (admin.role !== "Administrator") {
-      return res.status(401).send({
-        success: false,
-        status: "Staff Suspension Failed",
-        message: "You are not authorized to suspend the staffs",
-      });
-    }
-
-    const { schoolCode, _id } = req.params;
-    const staff = await Staff.findOne({ _id, schoolCode });
-    const school = await School.findOne({ schoolCode });
-
-    if (staff.schoolCode !== parseInt(schoolCode)) {
-      return res.status(401).send({
-        success: false,
-        status: "Staff failed to suspend",
-        message: "You cannot suspend staffs of other school",
-      });
-    }
-
-    staff.status = "removed";
-    staff.tokens = [];
-
-    await staff.save();
-
-    const newSchool = school.staffs.filter((adm) => {
-      return adm._id.toString() !== _id;
-    });
-
-    school.staffs = newSchool;
-
-    school.staffs2.unshift(staff);
-
-    await school.save();
-
-    next();
-  } catch (e) {
-    return res.status(500).send({
-      success: false,
-      status: "Staff failed to remove",
-      message: e.message,
-    });
-  }
-}
-
-// Add staff again to school
-async function addStaff(req, res, next) {
-  try {
-    const admin = req.staff;
-
-    if (admin.role !== "Administrator") {
-      return res.status(401).send({
-        success: false,
-        status: "Staff Failed to add",
-        message: "You are not authorized to add the staffs",
-      });
-    }
-
-    const { schoolCode, _id } = req.params;
-
-    if (parseInt(schoolCode) !== admin.schoolCode) {
-      throw new Error("SchoolCode did not match misbehaviour spotted ");
-    }
-
-    const staff = await Staff.findOne({ _id, schoolCode });
-    const school = await School.findOne({ schoolCode });
-
-    staff.status = "active";
-    staff.tokens = [];
-
-    await staff.save();
-
-    const newSchool = school.staffs2.filter((adm) => {
-      return adm._id.toString() !== _id;
-    });
-
-    school.staffs2 = newSchool;
-    school.staffs.push(staff);
-
-    await school.save();
-
-    next();
-  } catch (e) {
-    return res.status(500).send({
-      success: false,
-      status: "Staff failed to add",
-      message: e.message,
-    });
-  }
-}
 
 //delete a school bus route
 const delteBusRoute = async (req, res, next) => {
@@ -1483,6 +1381,101 @@ async function getExamInfo(req, res, next) {
 //   }
 // };
 
+// *****************************************************************************
+// below here are the optimized code which can be used for our work
+
+// Suspend staff from school
+async function suspendStaff(req, res, next) {
+  try {
+    const { staff: admin } = req;
+    const { schoolCode, _id } = req.params;
+
+    if (admin.role !== "Administrator") {
+      return res.status(401).send({
+        success: false,
+        status: "Staff Suspension Failed",
+        message: "You are not authorized to suspend the staff",
+      });
+    }
+
+    // Perform both operations concurrently
+    const [staffUpdateResult, schoolUpdateResult] = await Promise.all([
+      Staff.updateOne(
+        { _id, schoolCode },
+        { $set: { status: "removed", tokens: [] } }
+      ),
+      School.updateOne(
+        { schoolCode, "staffs._id": _id },
+        { $set: { "staffs.$.removedOn": getDate().fullDate } }
+      ),
+    ]);
+
+    if (staffUpdateResult.nModified === 0) {
+      return res.status(404).send({
+        success: false,
+        status: "Staff Not Found",
+        message: "The staff you are trying to add does not exist",
+      });
+    }
+    next();
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send({
+      success: false,
+      status: "Staff Suspension Failed",
+      message: e.message,
+    });
+  }
+}
+
+// Add staff again to school
+async function addStaff(req, res, next) {
+  try {
+    const { staff: admin } = req;
+    const { schoolCode, _id } = req.params;
+
+    if (admin.role !== "Administrator") {
+      return res.status(401).send({
+        success: false,
+        status: "Staff Addition Failed",
+        message: "You are not authorized to add the staff",
+      });
+    }
+
+    if (parseInt(schoolCode) !== admin.schoolCode) {
+      throw new Error("SchoolCode mismatch detected");
+    }
+
+    // Perform both operations concurrently
+    const [staffUpdateResult, schoolUpdateResult] = await Promise.all([
+      Staff.updateOne(
+        { _id, schoolCode },
+        { $set: { status: "active", tokens: [] } }
+      ),
+      School.updateOne(
+        { schoolCode, "staffs._id": _id },
+        { $unset: { "staffs.$.removedOn": "" } }
+      ),
+    ]);
+
+    if (staffUpdateResult.nModified === 0) {
+      return res.status(404).send({
+        success: false,
+        status: "Staff Not Found",
+        message: "The staff you are trying to add does not exist",
+      });
+    }
+    next();
+  } catch (e) {
+    console.error(e);
+    return res.status(500).send({
+      success: false,
+      status: "Staff Addition Failed",
+      message: e.message,
+    });
+  }
+}
+
 module.exports = {
   createCourse,
   updateCourse,
@@ -1492,7 +1485,6 @@ module.exports = {
   staffProfileUpdate,
   createNewStaff,
   findSchoolAdmissions,
-  suspendStaff,
   delteBusRoute,
   addBusRoute,
   deleteReview,
@@ -1503,11 +1495,16 @@ module.exports = {
   deleteOthersTab,
   updateOthersTab,
   findSchoolCoursesAdmin,
-  addStaff,
   addExam,
   publishResult,
   getExamInfo,
   createCourse2,
   updateCourseNext,
   // startNewSession,
+
+
+
+
+  suspendStaff,
+  addStaff,
 };

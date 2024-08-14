@@ -4,7 +4,7 @@ const { photoWork } = require("../config/photoWork");
 const Update = require("../schemas/updateSchema");
 const { getCurrentNepaliDate } = require("../config/nepaliDate");
 const Student = require("../schemas/studentSchema");
-const School = require("../schemas/schoolSchema");
+const { School } = require("../schemas/schoolSchema");
 const Staff = require("../schemas/staffSchema");
 const Exam = require("../schemas/examSchema");
 
@@ -419,7 +419,7 @@ async function getAllStaffs(req, res, next) {
   try {
     const { schoolCode } = req.params;
 
-    const school = await School.findOne({ schoolCode });
+    const school = await School.findOne({ schoolCode }, { staffs: 1 });
 
     if (!school) {
       return res.status(404).send({
@@ -429,21 +429,14 @@ async function getAllStaffs(req, res, next) {
       });
     }
 
-    const allStaffs = [];
-    for (const ind of school.staffs) {
-      let cStaff = await Staff.findOne({ _id: ind._id });
+    const staffIds = school.staffs
+      .filter((ind) => !ind.removedOn)
+      .map((ind) => ind._id);
 
-      if (cStaff && cStaff.schoolCode === parseInt(schoolCode)) {
-        // Creating a new object to avoid modifying the original object
-        const sanitizedStaff = { ...cStaff.toObject() }; // Convert to plain object
-
-        // Deleting sensitive fields
-        delete sanitizedStaff.password;
-        delete sanitizedStaff.tokens;
-
-        allStaffs.push(sanitizedStaff);
-      }
-    }
+    const allStaffs = await Staff.find({
+      _id: { $in: staffIds },
+      schoolCode: parseInt(schoolCode),
+    }).select("-password -tokens -loginId");
 
     req.staffs = allStaffs;
     next();

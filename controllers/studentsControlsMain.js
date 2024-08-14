@@ -1,6 +1,6 @@
 const cloudinary = require("../config/cloudinary");
 const Course = require("../schemas/courseSchema");
-const School = require("../schemas/schoolSchema");
+const {School} = require("../schemas/schoolSchema");
 const Staff = require("../schemas/staffSchema");
 const Student = require("../schemas/studentSchema");
 const Gallery = require("../schemas/gallerySchema");

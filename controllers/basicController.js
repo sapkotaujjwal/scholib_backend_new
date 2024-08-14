@@ -1,7 +1,7 @@
-const School = require("../schemas/schoolSchema");
+const { School } = require("../schemas/schoolSchema");
 const Student = require("../schemas/studentSchema");
 const { photoWork } = require("../config/photoWork");
-const Course = require("../schemas/courseSchema");
+const { CourseNew } = require("../schemas/courseSchema");
 
 const Gallery = require("../schemas/gallerySchema");
 const Update = require("../schemas/updateSchema");
@@ -86,25 +86,19 @@ const findSchoolGallery = async (req, res, next) => {
 //find school courses
 const findSchoolCourses = async (req, res, next) => {
   try {
-    const schoolCode = req.params.schoolCode;
-    const courses = await Course.findOne({ schoolCode });
-    if (!courses) {
-      return res
-        .status(404)
-        .send("Course you are searching for doesn't exists");
-    }
-
-    const courses2 = JSON.parse(JSON.stringify(courses));
-
-    courses2.course.map((clc) => {
-      clc.groups.map((grp) => {
-        grp.sections.map((sec) => {
-          delete sec.students;
-        });
-      });
+    const schoolCode = parseInt(req.params.schoolCode);
+    const courses = await School.findOne({schoolCode}).populate({
+      path: "course",
+      populate: {
+        path: "groups",
+        populate: {
+          path: "sections",
+          select: "-students -exams",
+        },
+      },
     });
 
-    req.courses = courses2;
+    req.courses = courses;
     next();
   } catch (e) {
     console.log(e);

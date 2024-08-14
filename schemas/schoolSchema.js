@@ -7,7 +7,6 @@ const staffSchema = new mongoose.Schema({
   role: { type: String },
   title: { type: String },
   qualification: { type: String },
-  status: { type: String },
   pPhoto: {
     blurHash: {
       type: String,
