@@ -9,99 +9,6 @@ const { calculateStudentFee } = require("../config/studentCalc");
 const Exam = require("../schemas/examSchema");
 const { sendMail } = require("../config/sendEmail");
 
-// const CourseHistory = require("../schemas/courseHistory");
-
-async function updateSchoolImages(req, res, next) {
-  try {
-    const { schoolCode } = req.params;
-    let { imagesIds } = req.body;
-
-    const school = await School.findOne({ schoolCode });
-
-    if (!school) {
-      return res.status(404).send({
-        success: false,
-        status: "Not found",
-        message: `School schema for school code ${schoolCode} isn't found`,
-      });
-    }
-
-    if (
-      req.staff.role !== "Administrator" &&
-      req.staff.role !== "Coordinator"
-    ) {
-      return res.status(403).send({
-        success: false,
-        status: "Update deletion dailed",
-        message: "You are not authorized to delete the update",
-      });
-    }
-
-    imagesIds.forEach(async (id) => {
-      const imageObj = school.images.find((obj) => obj._id.equals(id));
-      await cloudinary.uploader.destroy(imageObj.public_id, (error, result) => {
-        if (error) {
-          return res.status(500).send({
-            success: false,
-            status: "Image deletion failed",
-            message: `${error.message}`,
-          });
-        }
-      });
-    });
-
-    imagesIds.forEach((id) => {
-      school.images = school.images.filter((obj) => obj._id != id);
-    });
-
-    if (req.files && req.files["images"]) {
-      for (const file of req.files["images"]) {
-        const photo = await photoWork(file);
-        const image = {
-          blurHash: photo.blurHash,
-          secure_url: photo.secure_url,
-          public_id: photo.public_id,
-          height: photo.height,
-          width: photo.width,
-        };
-        school.images.push(image);
-      }
-    }
-
-    await school.save();
-    next();
-  } catch (e) {
-    return res.status(500).send({
-      success: false,
-      status: "Update deletion failed",
-      message: e.message,
-    });
-  }
-}
-
-// Create new course
-const createCourse = async (req, res, next) => {
-  try {
-    const schoolCode = req.params.schoolCode;
-    const course = await Course.findOne({ schoolCode });
-    const data = req.body;
-
-    if (data.fees.find((dat) => dat.amount < 0)) {
-      throw new Error("No fee amount can be less than 0");
-    }
-
-    course.course.push(data);
-    const createdCourse = await course.save();
-    req.course = createdCourse;
-    next();
-  } catch (e) {
-    return res.status(400).send({
-      success: false,
-      status: "Course creation failed",
-      message: e.message,
-    });
-  }
-};
 
 // Create a new course and add in school schema
 const createCourse2 = async (req, res, next) => {
@@ -109,6 +16,8 @@ const createCourse2 = async (req, res, next) => {
     const schoolCode = req.params.schoolCode;
     const school = await School.findOne({ schoolCode });
     const data = req.body;
+
+    console.log(data)
 
     if (data.fees.find((dat) => dat.amount < 0)) {
       throw new Error("No fee amount can be less than 0");
@@ -192,6 +101,9 @@ async function updateCourse(req, res, next) {
     });
   }
 }
+
+
+
 
 async function deleteGallery(req, res, next) {
   try {
@@ -345,13 +257,13 @@ async function createNewStaff(req, res, next) {
       to: createdStaff.email,
       subject: `Scholib account created || Login to ${school.name}`,
       html: `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>School account created </title>
-    <style>
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>School account created </title>
+      <style>
         body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
@@ -1477,10 +1389,8 @@ async function addStaff(req, res, next) {
 }
 
 module.exports = {
-  createCourse,
   updateCourse,
   updateSchool,
-  updateSchoolImages,
   deleteGallery,
   staffProfileUpdate,
   createNewStaff,
@@ -1501,9 +1411,6 @@ module.exports = {
   createCourse2,
   updateCourseNext,
   // startNewSession,
-
-
-
 
   suspendStaff,
   addStaff,

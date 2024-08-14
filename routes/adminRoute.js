@@ -5,7 +5,6 @@ const {
   updateCourse,
   updateSchool,
   deleteGallery,
-  updateSchoolImages,
   staffProfileUpdate,
   createNewStaff,
   findSchoolAdmissions,
@@ -115,22 +114,6 @@ router.put(
     res.status(200).send({
       success: true,
       data: req.staff,
-    });
-  }
-);
-
-// update website images
-router.put(
-  "/:schoolCode/website/update/images",
-  verifySchoolStaff,
-  checkAdmin,
-  upload.fields([{ name: "images", maxCount: 4 }]),
-  updateSchoolImages,
-  (req, res) => {
-    res.status(200).send({
-      success: true,
-      message: "School images has been updated",
-      school: req.school,
     });
   }
 );

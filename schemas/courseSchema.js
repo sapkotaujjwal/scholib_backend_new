@@ -47,7 +47,8 @@ const sectionSchema = new mongoose.Schema({
     {
       subject: String,
       teacher: {
-        _id: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Staff",
       },
     },
   ],
