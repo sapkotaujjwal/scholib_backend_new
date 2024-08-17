@@ -9,15 +9,12 @@ const { calculateStudentFee } = require("../config/studentCalc");
 const Exam = require("../schemas/examSchema");
 const { sendMail } = require("../config/sendEmail");
 
-
-// Create a new course and add in school schema
+// Create a new course and save it in school schema
 const createCourse2 = async (req, res, next) => {
   try {
     const schoolCode = req.params.schoolCode;
     const school = await School.findOne({ schoolCode });
     const data = req.body;
-
-    console.log(data)
 
     if (data.fees.find((dat) => dat.amount < 0)) {
       throw new Error("No fee amount can be less than 0");
@@ -43,11 +40,15 @@ const updateCourseNext = async (req, res, next) => {
     const school = await School.findOne({ schoolCode });
     const data = req.body;
 
-    // data.map((dat) => {
-    //   if (dat.class && dat.next && dat.class.toString() === dat.name.toString()) {
-    //     throw new Error("Wrong");
-    //   }
-    // });
+    data.map((dat) => {
+      if (
+        dat.class &&
+        dat.next &&
+        dat.class.toString() === dat.name.toString()
+      ) {
+        throw new Error("Wrong");
+      }
+    });
 
     school.course.map((clc) => {
       let nextClass =
@@ -66,6 +67,7 @@ const updateCourseNext = async (req, res, next) => {
   }
 };
 
+// update our course
 async function updateCourse(req, res, next) {
   try {
     const { schoolCode } = req.params;
@@ -102,8 +104,171 @@ async function updateCourse(req, res, next) {
   }
 }
 
+// Add new Exam
+async function addExam(req, res, next) {
+  try {
+    const schoolCode = req.staff.schoolCode;
+    const classesList = JSON.parse(req.query.classesList);
 
+    const exam = await Exam.findOne({ schoolCode });
+    const course = await Course.findOne({ schoolCode }).select("course");
 
+    if (!exam) {
+      return res.status(404).send({
+        success: false,
+        status: "Exam not found",
+        message: "No exam record found for the given school code.",
+      });
+    }
+
+    if (!course) {
+      return res.status(404).send({
+        success: false,
+        status: "Course not found",
+        message: "No course record found for the given school code.",
+      });
+    }
+
+    const newClasses = course.course.filter((crc) =>
+      classesList.includes(crc._id.toString())
+    );
+
+    newClasses.forEach((eachClass) => {
+      const existingAlready = exam.exam.find(
+        (each) => each.course && each.course.class === eachClass._id.toString()
+      );
+
+      const newObj = {
+        section: eachClass.groups.flatMap((grp) =>
+          grp.sections.map((sec) => {
+            const allStudents = sec.students.map((std, index) => ({
+              _id: std._id.toString(),
+              roll: index + 1,
+            }));
+
+            return {
+              _id: sec._id.toString(),
+              subjects: sec.subjects.map((sub) => ({
+                _id: sub._id,
+                subject: sub.name,
+                teacher: sub.teacher,
+                fullMarks: 100,
+                passMarks: 40,
+                students: allStudents,
+              })),
+            };
+          })
+        ),
+      };
+
+      if (existingAlready) {
+        console.log(existingAlready);
+
+        existingAlready.course.term.push(newObj);
+      } else {
+        const objTop = {
+          year: getDate().year,
+          course: {
+            class: eachClass._id.toString(),
+            term: [newObj],
+          },
+        };
+        exam.exam.push(objTop);
+      }
+    });
+
+    await exam.save();
+    next();
+  } catch (e) {
+    return res.status(500).send({
+      success: false,
+      status: "Exam failed to add",
+      message: e.message,
+    });
+  }
+}
+
+// Publish Result
+async function publishResult(req, res, next) {
+  try {
+    const schoolCode = req.staff.schoolCode;
+    const classesList = JSON.parse(req.query.classesList);
+
+    const exam = await Exam.findOne({ schoolCode });
+
+    if (!exam) {
+      return res.status(404).send({
+        success: false,
+        status: "Exam not found",
+        message: "No exam record found for the given schoolCode.",
+      });
+    }
+
+    exam.exam.map((ind) => {
+      if (classesList.includes(ind.course.class)) {
+        ind.course.term.map((term) => {
+          if (term.status !== "Published") {
+            term.status = "Published";
+            term.publishedDate = getDate().fullDate;
+          }
+        });
+      }
+    });
+
+    await exam.save();
+    next();
+  } catch (e) {
+    console.log(e);
+    return res.status(500).send({
+      success: false,
+      status: "Result failed to publish",
+      message: e.message,
+    });
+  }
+}
+
+// get exam info
+async function getExamInfo(req, res, next) {
+  try {
+    const schoolCode = req.staff.schoolCode;
+    const year = req.query.year;
+    const classId = req.query.classId;
+
+    let exam = await Exam.findOne({ schoolCode });
+
+    if (!exam) {
+      return res.status(404).send({
+        success: false,
+        status: "Exam not found",
+        message: "No exam record found for the given schoolCode.",
+      });
+    }
+
+    exam = exam.exam.find(
+      (ind) =>
+        ind.year === getDate().year && ind.course.class.toString() === classId
+    );
+
+    if (!exam) {
+      return res.status(404).send({
+        success: false,
+        status: "Exam not found",
+        message: "No exam record found for the given class and year.",
+      });
+    }
+
+    req.data = exam;
+
+    next();
+  } catch (e) {
+    console.log(e);
+    return res.status(500).send({
+      success: false,
+      status: "Exam info failed to get",
+      message: e.message,
+    });
+  }
+}
 
 async function deleteGallery(req, res, next) {
   try {
@@ -447,6 +612,9 @@ const addBusRoute = async (req, res, next) => {
       throw new Error("Amount cannot be less than 0");
     }
 
+    console.log(newBusRoute)
+
+    
     const updatedSchool = await School.findOneAndUpdate(
       { schoolCode },
       {
@@ -459,11 +627,13 @@ const addBusRoute = async (req, res, next) => {
                 amount: newBusRoute.amount,
               },
             ],
+            active: true,
           },
-        }, // Add new bus route
+        },
       },
       { new: true }
     );
+    
 
     if (!updatedSchool) {
       throw new Error("School not found or unable to update bus routes.");
@@ -948,172 +1118,6 @@ const updateSchool = async (req, res, next) => {
     return;
   }
 };
-
-// Add new Exam
-async function addExam(req, res, next) {
-  try {
-    const schoolCode = req.staff.schoolCode;
-    const classesList = JSON.parse(req.query.classesList);
-
-    const exam = await Exam.findOne({ schoolCode });
-    const course = await Course.findOne({ schoolCode }).select("course");
-
-    if (!exam) {
-      return res.status(404).send({
-        success: false,
-        status: "Exam not found",
-        message: "No exam record found for the given school code.",
-      });
-    }
-
-    if (!course) {
-      return res.status(404).send({
-        success: false,
-        status: "Course not found",
-        message: "No course record found for the given school code.",
-      });
-    }
-
-    const newClasses = course.course.filter((crc) =>
-      classesList.includes(crc._id.toString())
-    );
-
-    newClasses.forEach((eachClass) => {
-      const existingAlready = exam.exam.find(
-        (each) => each.course && each.course.class === eachClass._id.toString()
-      );
-
-      const newObj = {
-        section: eachClass.groups.flatMap((grp) =>
-          grp.sections.map((sec) => {
-            const allStudents = sec.students.map((std, index) => ({
-              _id: std._id.toString(),
-              roll: index + 1,
-            }));
-
-            return {
-              _id: sec._id.toString(),
-              subjects: sec.subjects.map((sub) => ({
-                _id: sub._id,
-                subject: sub.name,
-                teacher: sub.teacher,
-                fullMarks: 100,
-                passMarks: 40,
-                students: allStudents,
-              })),
-            };
-          })
-        ),
-      };
-
-      if (existingAlready) {
-        console.log(existingAlready);
-
-        existingAlready.course.term.push(newObj);
-      } else {
-        const objTop = {
-          year: getDate().year,
-          course: {
-            class: eachClass._id.toString(),
-            term: [newObj],
-          },
-        };
-        exam.exam.push(objTop);
-      }
-    });
-
-    await exam.save();
-    next();
-  } catch (e) {
-    return res.status(500).send({
-      success: false,
-      status: "Exam failed to add",
-      message: e.message,
-    });
-  }
-}
-
-// Publish Result
-async function publishResult(req, res, next) {
-  try {
-    const schoolCode = req.staff.schoolCode;
-    const classesList = JSON.parse(req.query.classesList);
-
-    const exam = await Exam.findOne({ schoolCode });
-
-    if (!exam) {
-      return res.status(404).send({
-        success: false,
-        status: "Exam not found",
-        message: "No exam record found for the given schoolCode.",
-      });
-    }
-
-    exam.exam.map((ind) => {
-      if (classesList.includes(ind.course.class)) {
-        ind.course.term.map((term) => {
-          if (term.status !== "Published") {
-            term.status = "Published";
-            term.publishedDate = getDate().fullDate;
-          }
-        });
-      }
-    });
-
-    await exam.save();
-    next();
-  } catch (e) {
-    console.log(e);
-    return res.status(500).send({
-      success: false,
-      status: "Result failed to publish",
-      message: e.message,
-    });
-  }
-}
-
-// get exam info
-async function getExamInfo(req, res, next) {
-  try {
-    const schoolCode = req.staff.schoolCode;
-    const year = req.query.year;
-    const classId = req.query.classId;
-
-    let exam = await Exam.findOne({ schoolCode });
-
-    if (!exam) {
-      return res.status(404).send({
-        success: false,
-        status: "Exam not found",
-        message: "No exam record found for the given schoolCode.",
-      });
-    }
-
-    exam = exam.exam.find(
-      (ind) =>
-        ind.year === getDate().year && ind.course.class.toString() === classId
-    );
-
-    if (!exam) {
-      return res.status(404).send({
-        success: false,
-        status: "Exam not found",
-        message: "No exam record found for the given class and year.",
-      });
-    }
-
-    req.data = exam;
-
-    next();
-  } catch (e) {
-    console.log(e);
-    return res.status(500).send({
-      success: false,
-      status: "Exam info failed to get",
-      message: e.message,
-    });
-  }
-}
 
 // Start New Session
 

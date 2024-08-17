@@ -50,7 +50,13 @@ async function generateTokenStudent(req, res, next) {
     req.user = await Student.findOneAndUpdate({ _id: user._id }, user, {
       new: true,
     });
-    next();
+
+    if(next){
+      next();
+    }
+
+
+    // next();
   } catch (e) {
     return res.status(500).send({
       success: false,
@@ -90,7 +96,13 @@ async function generateTokenStaff(req, res, next) {
     req.user = await Staff.findOneAndUpdate({ _id: user._id }, user, {
       new: true,
     });
-    next();
+
+    if(next){
+      next();
+    }
+
+
+    // next();
   } catch (e) {
     return res.status(500).send({
       success: false,

@@ -407,7 +407,80 @@ const schoolSchema = new mongoose.Schema({
   ],
 
   //course
-  course: [{ type: mongoose.Schema.Types.ObjectId, ref: "CourseNew" }],
+
+  course: [
+    {
+      class: {
+        type: String,
+        required: true,
+        maxlength: 50,
+      },
+      seatsAvailable: {
+        type: Number,
+        required: true,
+        default: 999,
+      },
+      subjects: [
+        {
+          type: String,
+        },
+      ],
+      groups: [
+        {
+          name: {
+            type: String,
+          },
+          subjects: [
+            {
+              type: String,
+            },
+          ],
+          sections: [
+            {
+              name: {
+                type: String,
+              },
+              subjects: [
+                {
+                  subject: {
+                    type: String,
+                  },
+                  teacher: {
+                    _id: {
+                      type: mongoose.Schema.Types.ObjectId,
+                      ref: "Staff",
+                    },
+                    name: {
+                      type: String,
+                    },
+                    title: {
+                      type: String,
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ],
+      fees: [
+        {
+          title: {
+            type: String,
+          },
+          amount: {
+            type: Number,
+            min: 0,
+          },
+        },
+      ],
+      next: {
+        type: String,
+      },
+    },
+  ],
+
+  course2: [{ type: mongoose.Schema.Types.ObjectId, ref: "CourseNew" }],
 
   // from other Schemas
   staffs: [staffSchema],

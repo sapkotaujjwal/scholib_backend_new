@@ -54,12 +54,11 @@ async function changePassword(req, res, next) {
       await user1.save();
 
       if (user === "Student") {
-        await generateTokenStudent(req, res, next);
+        await generateTokenStudent(req, res);
       } else {
-        await generateTokenStaff(req, res, next);
+        await generateTokenStaff(req, res);
       }
 
-      // next();
     } else {
       return res.status(409).json({
         success: false,
