@@ -1,9 +1,6 @@
-const cloudinary = require("../config/cloudinary");
 const Course = require("../schemas/courseSchema");
-const {School} = require("../schemas/schoolSchema");
-const Staff = require("../schemas/staffSchema");
+const { School } = require("../schemas/schoolSchema");
 const Student = require("../schemas/studentSchema");
-const Gallery = require("../schemas/gallerySchema");
 const { photoWork } = require("../config/photoWork");
 const {
   getDate,
@@ -11,8 +8,34 @@ const {
   isSameDay,
 } = require("../config/nepaliDate");
 
-const mongoose = require("mongoose");
 const { sendMail } = require("../config/sendEmail");
+
+//delete school admission
+const deleteAdmission = async (req, res, next) => {
+  try {
+    const { schoolCode, _id } = req.params;
+
+    await Promise.all([
+      School.updateOne(
+        { schoolCode: schoolCode },
+        { $pull: { admissions: { _id } } }
+      ),
+      Student.findByIdAndDelete({ schoolCode, _id }),
+    ]);
+
+    next();
+  } catch (e) {
+    res.status(500).send({
+      success: false,
+      status: "Something went wrong",
+      message: e.message,
+    });
+  }
+};
+
+
+
+// ***************** below here are not optimized and are all old codes ************************
 
 // short hand to get the student
 const findStudent = (course, classId, groupId, sectionId, _id) => {
@@ -32,56 +55,6 @@ const findStudent = (course, classId, groupId, sectionId, _id) => {
   if (!sectionObj) return null;
 
   return sectionObj.students.find((last) => last._id.toString() === _id);
-};
-
-//delete school admission
-const deleteAdmission = async (req, res, next) => {
-  try {
-    const { schoolCode, _id } = req.params;
-
-    const school = await School.findOne({ schoolCode });
-    if (!school) {
-      return res.status(404).send({
-        success: false,
-        status: "School not found",
-        message: `The school you are looking for isn't found. Try checking your schoolCode `,
-      });
-    }
-
-    const student = await Student.findByIdAndDelete({ _id });
-
-    if (!student) {
-      return res.status(400).send({
-        success: false,
-        status: "Student Not Found",
-        message: "The student you are trying to delete doesn't exists",
-      });
-    }
-
-    if (student.schoolCode !== parseInt(schoolCode)) {
-      return res.status(401).send({
-        success: false,
-        status: "Student failed to delete",
-        message: "You cannot delete students of other school",
-      });
-    }
-
-    const newSchool = school.admissions.filter((adm) => {
-      return adm._id.toString() !== _id;
-    });
-
-    school.admissions = newSchool;
-    await school.save();
-
-    next();
-  } catch (e) {
-    res.status(500).send({
-      success: false,
-      status: "Something went wrong",
-      message: e.message,
-    });
-    return;
-  }
 };
 
 //accept school admission
@@ -146,14 +119,14 @@ const acceptAdmission = async (req, res, next) => {
       to: student.email,
       subject: `Scholib account created || Login to ${school.name}`,
       html: `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>School account created </title>
-    <style>
-        body {
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>School account created </title>
+      <style>
+          body {
             font-family: Arial, sans-serif;
             background-color: #f4f4f4;
             margin: 0;
@@ -1468,7 +1441,6 @@ module.exports = {
   endBusService,
   getAllStudentsFromCourse,
   studentProfileUpdate,
-  deleteAdmission,
   updateAndAcceptAdmission,
   acceptAdmission,
   suspendStudent,
@@ -1480,4 +1452,8 @@ module.exports = {
   returnBooks,
   changeCourse,
   takeAttendance,
+
+  // here i have the ones which are already latest version
+
+  deleteAdmission,
 };

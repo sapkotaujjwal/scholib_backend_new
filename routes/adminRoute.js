@@ -24,7 +24,7 @@ const {
   publishResult,
   getExamInfo,
   updateCourseNext,
-  // startNewSession,
+  startNewSession,
 } = require("../controllers/adminController");
 const upload = require("../config/multer");
 
@@ -416,18 +416,18 @@ router.post(
 );
 
 // Start New Session
-// router.get(
-//   "/:schoolCode/sessions/new",
-//   verifySchoolStaff,
-//   checkAdmin,
-//   startNewSession,
-//   (req, res) => {
-//     res.status(200).send({
-//       success: true,
-//       status: "Session Started",
-//       message: "New session has been started and all the students are promoted",
-//     });
-//   }
-// );
+router.get(
+  "/:schoolCode/sessions/new",
+  verifySchoolStaff,
+  checkAdmin,
+  startNewSession,
+  (req, res) => {
+    res.status(200).send({
+      success: true,
+      status: "Session Started",
+      message: "New session has been started and all the students are promoted",
+    });
+  }
+);
 
 module.exports = router;

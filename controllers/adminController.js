@@ -1121,181 +1121,198 @@ const updateSchool = async (req, res, next) => {
 
 // Start New Session
 
-// const startNewSession = async (req, res, next) => {
-//   try {
-//     const { schoolCode } = req.params;
-//     const classesList = JSON.parse(req.query.classesList);
+const startNewSession = async (req, res, next) => {
+  try {
+    const { schoolCode } = req.params;
+    const classesList = JSON.parse(req.query.classesList);
 
-//     const school = await School.findOne({ schoolCode });
-//     const course = await Course.findOne({ schoolCode }).select("course");
-//     const tempCourse = JSON.parse(JSON.stringify(course.course));
-//     const courseHistory = await CourseHistory.findOne({ schoolCode });
+    const school = await School.findOne({ schoolCode });
+    const course = await Course.findOne({ schoolCode }).select("course");
+    const tempCourse = JSON.parse(JSON.stringify(course.course));
+    const courseHistory = await CourseHistory.findOne({ schoolCode });
 
-//     if (!school || !course || !courseHistory) {
-//       throw new Error("School, Course, or Course History not found");
-//     }
+    if (!school || !course || !courseHistory) {
+      throw new Error("School, Course, or Course History not found");
+    }
 
-//     for (const crc of school.course) {
-//       const crcIdStr = crc._id.toString();
+    for (const crc of school.course) {
+      const crcIdStr = crc._id.toString();
 
-//       if (
-//         classesList.includes(crcIdStr) &&
-//         !tempCourse.find((crc2) => crc2._id.toString() === crcIdStr)
-//       ) {
-//         course.course.push(crc);
-//         continue;
-//       } else if (!classesList.includes(crcIdStr)) {
-//         continue;
-//       }
+      if (
+        classesList.includes(crcIdStr) &&
+        !tempCourse.find((crc2) => crc2._id.toString() === crcIdStr)
+      ) {
+        course.course.push(crc);
+        continue;
+      } else if (!classesList.includes(crcIdStr)) {
+        continue;
+      }
 
-//       if (crc.next) {
-//         courseHistory.course.unshift(
-//           tempCourse.find((dat) => dat._id.toString() === crc._id.toString())
-//         );
+      if (crc.next) {
+        courseHistory.course.unshift(
+          tempCourse.find((dat) => dat._id.toString() === crc._id.toString())
+        );
 
-//         let nextClass = JSON.parse(
-//           JSON.stringify(
-//             school.course.find(
-//               (crc2) => crc2._id.toString() === crc.next.toString()
-//             )
-//           )
-//         );
+        let nextClass = JSON.parse(
+          JSON.stringify(
+            school.course.find(
+              (crc2) => crc2._id.toString() === crc.next.toString()
+            )
+          )
+        );
 
-//         if (nextClass) {
-//           nextClass.startDate = getDate().fullDate;
-//           for (const group1 of tempCourse.find(
-//             (ccc) => ccc._id.toString() === crc._id.toString()
-//           ).groups) {
-//             const correspondingGroup = nextClass.groups.find(
-//               (group2) =>
-//                 group2.name.toUpperCase() === group1.name.toUpperCase()
-//             );
+        if (nextClass) {
+          nextClass.startDate = getDate().fullDate;
+          for (const group1 of tempCourse.find(
+            (ccc) => ccc._id.toString() === crc._id.toString()
+          ).groups) {
+            const correspondingGroup = nextClass.groups.find(
+              (group2) =>
+                group2.name.toUpperCase() === group1.name.toUpperCase()
+            );
 
-//             if (!correspondingGroup) {
-//               throw new Error(
-//                 "Unable to perform the operation !! corresponding group name mismatched"
-//               );
-//             }
+            if (!correspondingGroup) {
+              throw new Error(
+                "Unable to perform the operation !! corresponding group name mismatched"
+              );
+            }
 
-//             for (const section1 of group1.sections) {
-//               const correspondingSection = correspondingGroup.sections.find(
-//                 (section2) =>
-//                   section2.name.toUpperCase() === section1.name.toUpperCase()
-//               );
+            for (const section1 of group1.sections) {
+              const correspondingSection = correspondingGroup.sections.find(
+                (section2) =>
+                  section2.name.toUpperCase() === section1.name.toUpperCase()
+              );
 
-//               if (!correspondingSection) {
-//                 throw new Error(
-//                   "Unable to perform the operation !! corresponding section name mismatched"
-//                 );
-//               }
+              if (!correspondingSection) {
+                throw new Error(
+                  "Unable to perform the operation !! corresponding section name mismatched"
+                );
+              }
 
-//               correspondingSection.students = section1.students.map((std) => {
-//                 const correspondingStudent = section1.students.find(
-//                   (std2) => std2._id.toString() === std._id.toString()
-//                 );
+              correspondingSection.students = section1.students.map((std) => {
+                const correspondingStudent = section1.students.find(
+                  (std2) => std2._id.toString() === std._id.toString()
+                );
 
-//                 std.absentdays = [];
-//                 std.discount = [];
-//                 std.fine = [];
-//                 std.paymentHistory = [];
-//                 std.library = correspondingStudent.library.filter(
-//                   (lib) => !lib.returnedDate
-//                 );
-//                 std.bus = [];
+                std.absentdays = [];
+                std.discount = [];
+                std.fine = [];
+                std.paymentHistory = [];
+                std.library = correspondingStudent.library.filter(
+                  (lib) => !lib.returnedDate
+                );
+                std.bus = [];
 
-//                 if (
-//                   correspondingStudent.bus.length === 0 ||
-//                   !correspondingStudent.bus[0]?.end
-//                 ) {
-//                   std.bus.unshift({
-//                     place: correspondingStudent.bus[0]?.place,
-//                     start: getDate().fullDate,
-//                   });
-//                 }
+                if (
+                  correspondingStudent.bus.length === 0 ||
+                  !correspondingStudent.bus[0]?.end
+                ) {
+                  std.bus.unshift({
+                    place: correspondingStudent.bus[0]?.place,
+                    start: getDate().fullDate,
+                  });
+                }
 
-//                 std.previousLeft = calculateStudentFee(
-//                   nextClass.fees,
-//                   school.busFee,
-//                   correspondingStudent,
-//                   nextClass.startDate
-//                 );
+                std.previousLeft = calculateStudentFee(
+                  nextClass.fees,
+                  school.busFee,
+                  correspondingStudent,
+                  nextClass.startDate
+                );
 
-//                 const studentInSchool = school.students.find(
-//                   (student) => student._id.toString() === std._id.toString()
-//                 );
-//                 if (studentInSchool) {
-//                   studentInSchool.course = {
-//                     class: nextClass._id,
-//                     group: correspondingGroup._id,
-//                     section: correspondingSection._id,
-//                   };
-//                 }
+                const studentInSchool = school.students.find(
+                  (student) => student._id.toString() === std._id.toString()
+                );
+                if (studentInSchool) {
+                  studentInSchool.course = {
+                    class: nextClass._id,
+                    group: correspondingGroup._id,
+                    section: correspondingSection._id,
+                  };
+                }
 
-//                 return std;
-//               });
-//             }
-//           }
+                return std;
+              });
+            }
+          }
 
-//           course.course.find((ctr, index) => {
-//             if (ctr._id.toString() === nextClass._id.toString()) {
-//               course.course[index] = nextClass;
-//             }
-//           });
+          course.course.find((ctr, index) => {
+            if (ctr._id.toString() === nextClass._id.toString()) {
+              course.course[index] = nextClass;
+            }
+          });
 
-//           course.course.find((ctr, index) => {
-//             if (ctr._id.toString() === crc._id.toString()) {
-//               course.course[index] = crc;
-//             }
-//           });
-//         }
-//       }
+          course.course.find((ctr, index) => {
+            if (ctr._id.toString() === crc._id.toString()) {
+              course.course[index] = crc;
+            }
+          });
+        }
+      }
 
-//       if (!crc.next) {
-//         courseHistory.course.unshift(
-//           course.course.find((dat) => dat._id.toString() === crc._id.toString())
-//         );
+      if (!crc.next) {
+        courseHistory.course.unshift(
+          course.course.find((dat) => dat._id.toString() === crc._id.toString())
+        );
 
-//         tempCourse.forEach((crc2, index) => {
-//           if (crc2._id.toString() === crc._id.toString()) {
-//             function extractStudents(a) {
-//               let studentsArray = a.groups.flatMap((grp) =>
-//                 grp.sections.flatMap((sec) =>
-//                   sec.students.map((std) => std._id)
-//                 )
-//               );
+        tempCourse.forEach((crc2, index) => {
+          if (crc2._id.toString() === crc._id.toString()) {
+            function extractStudents(a) {
+              let studentsArray = a.groups.flatMap((grp) =>
+                grp.sections.flatMap((sec) =>
+                  sec.students.map((std) => std._id)
+                )
+              );
 
-//               return studentsArray;
-//             }
+              return studentsArray;
+            }
 
-//             const allStudents = extractStudents(tempCourse[index]);
+            const allStudents = extractStudents(tempCourse[index]);
 
-//             school.students = school.students.filter(
-//               (stu) =>
-//                 !allStudents.find(
-//                   (stu2) => stu2.toString() === stu._id.toString()
-//                 )
-//             );
+            school.students = school.students.filter(
+              (stu) =>
+                !allStudents.find(
+                  (stu2) => stu2.toString() === stu._id.toString()
+                )
+            );
 
-//             course.course[index] = crc;
-//             return;
-//           }
-//         });
-//       }
-//     }
+            course.course[index] = crc;
+            return;
+          }
+        });
+      }
+    }
 
-//     await course.save();
-//     await courseHistory.save();
-//     await school.save();
-//     next();
-//   } catch (e) {
-//     console.log(e);
-//     return res.status(500).send({
-//       success: false,
-//       status: "New Session failed to start",
-//       message: e.message,
-//     });
-//   }
-// };
+    await course.save();
+    await courseHistory.save();
+    await school.save();
+    next();
+  } catch (e) {
+    console.log(e);
+    return res.status(500).send({
+      success: false,
+      status: "New Session failed to start",
+      message: e.message,
+    });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 // *****************************************************************************
 // below here are the optimized code which can be used for our work
@@ -1414,7 +1431,7 @@ module.exports = {
   getExamInfo,
   createCourse2,
   updateCourseNext,
-  // startNewSession,
+  startNewSession,
 
   suspendStaff,
   addStaff,

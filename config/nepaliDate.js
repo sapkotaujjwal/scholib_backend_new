@@ -1,9 +1,10 @@
+// ************ Here i am working here Nepali date soon i want it to be changed to UTC date and remove this comment ****************** 
+
 const { adToBs } = require("@sbmdkl/nepali-date-converter");
 
 function getCurrentNepaliDate() {
   try {
     const utcDate = new Date();
-
     const nepalTime = new Date(utcDate.getTime() + (5 * 60 + 45) * 60000);
 
     const formattedNepalDate = nepalTime.toISOString().split("T")[0];
