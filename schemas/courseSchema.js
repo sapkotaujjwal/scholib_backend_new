@@ -25,6 +25,9 @@ const courseSchema = new mongoose.Schema({
     required: true,
     default: 999,
   },
+  courseId:{
+    type: String
+  },
   subjects: [{ type: String }],
   groups: [{ type: mongoose.Schema.Types.ObjectId, ref: "GroupNew" }],
   fees: [{ title: String, amount: { type: Number, min: 0 } }],
@@ -61,7 +64,7 @@ const SectionNew = mongoose.model("SectionNew", sectionSchema);
 const studentSchema = new mongoose.Schema({
   name: String,
   roll: String,
-  section: { type: mongoose.Schema.Types.ObjectId, ref: "Section" },
+  // section: { type: mongoose.Schema.Types.ObjectId, ref: "Section" },
   absentDays: [
     {
       date: { type: Date, default: getDate().fullDate },

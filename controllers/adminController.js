@@ -8,6 +8,7 @@ const { getDate } = require("../config/nepaliDate");
 const { calculateStudentFee } = require("../config/studentCalc");
 const Exam = require("../schemas/examSchema");
 const { sendMail } = require("../config/sendEmail");
+const { CourseNew, GroupNew, SectionNew } = require("../schemas/courseSchema");
 
 // Create a new course and save it in school schema
 const createCourse2 = async (req, res, next) => {
@@ -525,14 +526,30 @@ async function createNewStaff(req, res, next) {
 const findSchoolCoursesAdmin = async (req, res, next) => {
   try {
     const schoolCode = req.params.schoolCode;
-    const courses = await Course.findOne({ schoolCode });
+
+    const courses = await School.findOne(
+      { schoolCode },
+      { course2: 1, _id: 0 }
+    ).populate({
+      path: "course2",
+      populate: {
+        path: "groups",
+        populate: {
+          path: "sections",
+          populate: {
+            path: "students",
+          },
+        },
+      },
+    });
+
     if (!courses) {
       return res
         .status(404)
         .send("Course you are searching for doesn't exists");
     }
 
-    req.data = courses.course;
+    req.data = courses.course2;
     next();
   } catch (e) {
     console.log(e);
@@ -612,9 +629,8 @@ const addBusRoute = async (req, res, next) => {
       throw new Error("Amount cannot be less than 0");
     }
 
-    console.log(newBusRoute)
+    console.log(newBusRoute);
 
-    
     const updatedSchool = await School.findOneAndUpdate(
       { schoolCode },
       {
@@ -633,7 +649,6 @@ const addBusRoute = async (req, res, next) => {
       },
       { new: true }
     );
-    
 
     if (!updatedSchool) {
       throw new Error("School not found or unable to update bus routes.");
@@ -1126,13 +1141,24 @@ const startNewSession = async (req, res, next) => {
     const { schoolCode } = req.params;
     const classesList = JSON.parse(req.query.classesList);
 
-    const school = await School.findOne({ schoolCode });
-    const course = await Course.findOne({ schoolCode }).select("course");
-    const tempCourse = JSON.parse(JSON.stringify(course.course));
-    const courseHistory = await CourseHistory.findOne({ schoolCode });
+    const school = await School.findOne({ schoolCode }).populate({
+      path: "course2",
+      populate: {
+        path: "groups",
+        populate: {
+          path: "sections",
+          populate: {
+            path: "students",
+          },
+        },
+      },
+    });
 
-    if (!school || !course || !courseHistory) {
-      throw new Error("School, Course, or Course History not found");
+    const course = school.course2;
+    const tempCourse = JSON.parse(JSON.stringify(course));
+
+    if (!school || !course) {
+      throw new Error("School or Course not found");
     }
 
     for (const crc of school.course) {
@@ -1140,19 +1166,58 @@ const startNewSession = async (req, res, next) => {
 
       if (
         classesList.includes(crcIdStr) &&
-        !tempCourse.find((crc2) => crc2._id.toString() === crcIdStr)
+        !tempCourse.find((crc2) => crc2.courseId.toString() === crcIdStr)
       ) {
-        course.course.push(crc);
+        // Create sections and save them
+        const sections = await Promise.all(
+          crc.groups.map(async (group) =>
+            Promise.all(
+              group.sections.map(async (section) => {
+                const newSection = new SectionNew({
+                  name: section.name,
+                  subjects: section.subjects.map((subject) => ({
+                    subject: subject.subject,
+                    teacher: subject.teacher._id,
+                  })),
+                });
+                await newSection.save();
+                return newSection._id;
+              })
+            )
+          )
+        );
+
+        // Create groups and save them
+        const groups = await Promise.all(
+          crc.groups.map(async (group, index) => {
+            const newGroup = new GroupNew({
+              name: group.name,
+              subjects: group.subjects,
+              sections: sections[index],
+            });
+            await newGroup.save();
+            return newGroup._id;
+          })
+        );
+
+        // Create course and save it
+        const newCourse = new CourseNew({
+          schoolCode,
+          class: crc.class,
+          seatsAvailable: crc.seatsAvailable,
+          subjects: crc.subjects,
+          groups: groups,
+          fees: crc.fees,
+          next: crc.next,
+        });
+        let savedCourse = await newCourse.save();
+        school.course2.push(savedCourse._id);
         continue;
       } else if (!classesList.includes(crcIdStr)) {
         continue;
       }
 
       if (crc.next) {
-        courseHistory.course.unshift(
-          tempCourse.find((dat) => dat._id.toString() === crc._id.toString())
-        );
-
         let nextClass = JSON.parse(
           JSON.stringify(
             school.course.find(
@@ -1251,10 +1316,6 @@ const startNewSession = async (req, res, next) => {
       }
 
       if (!crc.next) {
-        courseHistory.course.unshift(
-          course.course.find((dat) => dat._id.toString() === crc._id.toString())
-        );
-
         tempCourse.forEach((crc2, index) => {
           if (crc2._id.toString() === crc._id.toString()) {
             function extractStudents(a) {
@@ -1283,8 +1344,6 @@ const startNewSession = async (req, res, next) => {
       }
     }
 
-    await course.save();
-    await courseHistory.save();
     await school.save();
     next();
   } catch (e) {
@@ -1296,23 +1355,6 @@ const startNewSession = async (req, res, next) => {
     });
   }
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // *****************************************************************************
 // below here are the optimized code which can be used for our work

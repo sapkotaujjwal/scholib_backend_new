@@ -53,6 +53,11 @@ const StudentSchemaNew = new mongoose.Schema({
     unique: true,
     required: true,
   },
+  oldCourses:[{
+    class: { type: mongoose.Schema.Types.ObjectId, ref: "CourseNew" },
+    group: { type: mongoose.Schema.Types.ObjectId, ref: "groupNew" },
+    section: { type: mongoose.Schema.Types.ObjectId, ref: "sectionNew" },
+  }]
 });
 
 const schoolSchema = new mongoose.Schema({
@@ -479,14 +484,14 @@ const schoolSchema = new mongoose.Schema({
       },
     },
   ],
-
+  
   course2: [{ type: mongoose.Schema.Types.ObjectId, ref: "CourseNew" }],
+  olderData: [{ type: mongoose.Schema.Types.ObjectId, ref: "OlderData" }],
 
   // from other Schemas
   staffs: [staffSchema],
   students: [StudentSchemaNew],
 
-  olderData: [{ type: mongoose.Schema.Types.ObjectId, ref: "OlderData" }],
 
   admissions: [
     {
