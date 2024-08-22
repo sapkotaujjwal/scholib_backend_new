@@ -1210,6 +1210,7 @@ const startNewSession = async (req, res, next) => {
           fees: crc.fees,
           next: crc.next,
         });
+
         let savedCourse = await newCourse.save();
         school.course2.push(savedCourse._id);
         continue;
@@ -1342,6 +1343,7 @@ const startNewSession = async (req, res, next) => {
           }
         });
       }
+
     }
 
     await school.save();
