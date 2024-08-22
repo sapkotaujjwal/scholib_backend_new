@@ -150,7 +150,6 @@ const studentSchema = new mongoose.Schema({
       ],
     },
   ],
-
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: "Student" },
 });
 const StudentNew = mongoose.model("StudentNew", studentSchema);

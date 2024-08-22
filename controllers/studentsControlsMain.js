@@ -231,49 +231,164 @@ async function endBusService(req, res, next) {
   }
 }
 
+// Pay student Fee by school Management Staffs
+async function payFees(req, res, next) {
+  try {
+    const { _id, schoolCode } = req.params;
+    const classId = req.query.classId;
+    const amount = req.query.amount;
+    const remark = req.query.remark;
+
+    if (amount < 0) {
+      throw new Error("Amount cannot be less than 0");
+    }
+
+    const dateAndTime = getCurrentNepaliDate();
+
+    const objToAdd = {
+      date: dateAndTime.nepaliDate,
+      time: dateAndTime.nepaliTime,
+      approvedBy: req.staff._id,
+      amount: amount,
+      remark: remark,
+      method: "Cash",
+    };
+
+    await StudentNew.findOneAndUpdate(
+      {
+        studentId: _id,
+        schoolCode,
+        "session.courseId": classId,
+      },
+      {
+        $push: { "session.$.paymentHistory": objToAdd },
+      }
+    );
+
+    next();
+  } catch (e) {
+    console.log(e);
+    return res.status(500).send({
+      success: false,
+      status: "Failed to pay fees",
+      message: e.message,
+    });
+  }
+}
+
+// Add a book to student's lended list
+async function addBook(req, res, next) {
+  try {
+    const { _id, schoolCode } = req.params;
+
+    const classId = req.query.classId;
+    const book = req.query.book;
+    let date = req.query.date;
+    let returnDate = req.query.returnDate;
+
+    if (book.length < 1) {
+      throw new Error("Book name is required");
+    }
+
+    // check regex for the valid date
+    if (!date) {
+      date = getDate().fullDate;
+    }
+    if (!returnDate) {
+      returnDate = `${getDate().year + 1}-01-01`;
+    }
+
+    var dateRegex = /^(\d{4})(\/|-)(0[1-9]|1[0-2])\2(0[1-9]|[12]\d|3[01])$/;
+    if (!dateRegex.test(date)) {
+      throw new Error("Date you entered is not in proper format");
+    }
+    if (!dateRegex.test(returnDate)) {
+      throw new Error("Return date you entered is not in proper format");
+    }
+
+    const objToAdd = {
+      date,
+      approvedBy: req.staff._id,
+      book,
+      returnDate,
+      status: "Not Returned",
+    };
+    await StudentNew.findOneAndUpdate(
+      {
+        studentId: _id,
+        schoolCode,
+        "session.courseId": classId,
+      },
+      {
+        $push: { "session.$.library": objToAdd },
+      }
+    );
+
+    next();
+  } catch (e) {
+    return res.status(500).send({
+      success: false,
+      status: "Failed to add fine",
+      message: e.message,
+    });
+  }
+}
+
+// Return books taken by the students
+async function returnBooks(req, res, next) {
+  try {
+    const { _id, schoolCode } = req.params;
+    const classId = req.query.classId;
+    const booksId = JSON.parse(req.query.allIds);
+
+    const studentUpdateResult = await StudentNew.updateOne(
+      {
+        schoolCode,
+        studentId: _id,
+        "session.courseId": classId,
+        "session.library._id": { $in: booksId },
+        "session.library.status": "Not Returned",
+        // Ensure the book is not already returned
+      },
+      {
+        $set: {
+          "session.$.library.$[book].status": "Returned",
+          "session.$.library.$[book].returnedDate": getDate().fullDate,
+        },
+      },
+      {
+        arrayFilters: [{ "book._id": { $in: booksId } }], // Filter to match the specific books
+      }
+    );
+
+    if (studentUpdateResult.nModified === 0) {
+      throw new Error("No books found to update or books are already returned");
+    }
+
+    next();
+  } catch (e) {
+    return res.status(500).send({
+      success: false,
+      status: "Failed to return books",
+      message: e.message,
+    });
+  }
+}
+
 // ***************** below here are not optimized and are all old codes ************************
-
-// short hand to get the student
-const findStudent = (course, classId, groupId, sectionId, _id) => {
-  const courseObj = course.course.find(
-    (first) => first._id.toString() === classId
-  );
-  if (!courseObj) return null;
-
-  const groupObj = courseObj.groups.find(
-    (second) => second._id.toString() === groupId
-  );
-  if (!groupObj) return null;
-
-  const sectionObj = groupObj.sections.find(
-    (third) => third._id.toString() === sectionId
-  );
-  if (!sectionObj) return null;
-
-  return sectionObj.students.find((last) => last._id.toString() === _id);
-};
 
 // Suspend student from school
 async function suspendStudent(req, res, next) {
   try {
     const { schoolCode, _id } = req.params;
-    const student = await Student.findOne({ _id });
-
-    if (student.schoolCode !== parseInt(schoolCode)) {
-      return res.status(401).send({
-        success: false,
-        status: "Student failed to suspend",
-        message: "You cannot suspend students of other school",
-      });
-    }
+    const student = await Student.findOne({ _id, schoolCode });
 
     student.status = "suspended";
     req.student = await student.save();
 
-    const updatedSchool = await School.findOneAndUpdate(
+    await School.findOneAndUpdate(
       { schoolCode, "students._id": _id },
-      { $set: { "students.$": req.student } },
-      { new: true }
+      { $set: { "students.$": req.student } }
     );
 
     next();
@@ -577,214 +692,6 @@ async function deleteStudent(req, res, next) {
     return res.status(500).send({
       success: false,
       status: "Failed to stop bus service",
-      message: e.message,
-    });
-  }
-}
-
-// Pay student Fee by school Management Staffs
-async function payFees(req, res, next) {
-  try {
-    const { _id, schoolCode } = req.params;
-
-    const groupId = req.query.groupId;
-    const sectionId = req.query.sectionId;
-    const classId = req.query.classId;
-    const amount = req.query.amount;
-    const remark = req.query.remark;
-
-    if (amount < 0) {
-      throw new Error("Amount cannot be less than 0");
-    }
-
-    const dateAndTime =  getCurrentNepaliDate();
-
-    const objToAdd = {
-      date: dateAndTime.nepaliDate,
-      time: dateAndTime.nepaliTime,
-      approvedBy: req.staff._id,
-      amount: amount,
-      remark: remark,
-      method: "Cash",
-    };
-
-    await Course.findOneAndUpdate(
-      {
-        schoolCode: schoolCode,
-        "course._id": classId,
-        "course.groups._id": groupId,
-        "course.groups.sections._id": sectionId,
-        "course.groups.sections.students._id": _id,
-        "course.groups.sections.students.paymentHistory": { $exists: true },
-      },
-      {
-        $push: {
-          "course.$[class].groups.$[group].sections.$[section].students.$[student].paymentHistory":
-            {
-              $each: [objToAdd],
-              $position: 0,
-            },
-        },
-      },
-      {
-        arrayFilters: [
-          { "class._id": classId },
-          { "group._id": groupId },
-          { "section._id": sectionId },
-          { "student._id": _id },
-        ],
-        new: true,
-      }
-    );
-
-    next();
-  } catch (e) {
-    console.log(e);
-    return res.status(500).send({
-      success: false,
-      status: "Failed to pay fees",
-      message: e.message,
-    });
-  }
-}
-
-// Add a book to student's lended list
-async function addBook(req, res, next) {
-  try {
-    const { _id, schoolCode } = req.params;
-
-    const groupId = req.query.groupId;
-    const sectionId = req.query.sectionId;
-    const classId = req.query.classId;
-    const book = req.query.book;
-    let date = req.query.date;
-    let returnDate = req.query.returnDate;
-
-    if (book.length < 1) {
-      throw new Error("Book name is required");
-    }
-
-    // check regex for the valid date
-
-    if (!date) {
-      date = getDate().fullDate;
-    }
-
-    if (!returnDate) {
-      returnDate = `${getDate().year + 1}-01-01`;
-    }
-
-    // var dateRegex = /^\d{4}\/(0[1-9]|1[0-2])\/(0[1-9]|[1-2][0-9]|3[0-1])$/;
-
-    var dateRegex = /^(\d{4})(\/|-)(0[1-9]|1[0-2])\2(0[1-9]|[12]\d|3[01])$/;
-
-    if (!dateRegex.test(date)) {
-      throw new Error("Date you entered is not in proper format");
-    }
-
-    if (!dateRegex.test(returnDate)) {
-      throw new Error("Return date you entered is not in proper format");
-    }
-
-    const objToAdd = {
-      date,
-      approvedBy: req.staff._id,
-      book,
-      returnDate,
-      status: "Not Returned",
-    };
-
-    await Course.findOneAndUpdate(
-      {
-        schoolCode: schoolCode,
-        "course._id": classId,
-        "course.groups._id": groupId,
-        "course.groups.sections._id": sectionId,
-        "course.groups.sections.students._id": _id,
-        "course.groups.sections.students.library": { $exists: true },
-      },
-      {
-        $push: {
-          "course.$[class].groups.$[group].sections.$[section].students.$[student].library":
-            {
-              $each: [objToAdd],
-              $position: 0,
-            },
-        },
-      },
-      {
-        arrayFilters: [
-          { "class._id": classId },
-          { "group._id": groupId },
-          { "section._id": sectionId },
-          { "student._id": _id },
-        ],
-        new: true,
-      }
-    );
-
-    next();
-  } catch (e) {
-    return res.status(500).send({
-      success: false,
-      status: "Failed to add fine",
-      message: e.message,
-    });
-  }
-}
-
-// Return books taken by the students
-async function returnBooks(req, res, next) {
-  try {
-    const { _id, schoolCode } = req.params;
-    const groupId = req.query.groupId;
-    const sectionId = req.query.sectionId;
-    const classId = req.query.classId;
-    const booksId = JSON.parse(req.query.allIds);
-
-    // Update the document
-    const updatedDocument = await Course.findOneAndUpdate(
-      {
-        schoolCode: schoolCode,
-        "course._id": classId,
-        "course.groups._id": groupId,
-        "course.groups.sections._id": sectionId,
-        "course.groups.sections.students._id": _id,
-        "course.groups.sections.students.library._id": {
-          $in: booksId,
-        },
-      },
-      {
-        $set: {
-          "course.$[class].groups.$[group].sections.$[section].students.$[student].library.$[book].returnedDate":
-            getDate().fullDate,
-        },
-      },
-      {
-        arrayFilters: [
-          { "class._id": classId },
-          { "group._id": groupId },
-          { "section._id": sectionId },
-          { "student._id": _id },
-          { "book._id": { $in: booksId } },
-        ],
-        new: true,
-      }
-    );
-
-    if (!updatedDocument) {
-      return res.status(404).send({
-        success: false,
-        status: "Failed to return book",
-        message: "Document not found or not updated",
-      });
-    }
-
-    next();
-  } catch (e) {
-    return res.status(500).send({
-      success: false,
-      status: "Failed to return books",
       message: e.message,
     });
   }
