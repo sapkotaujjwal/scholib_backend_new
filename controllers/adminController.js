@@ -1175,6 +1175,7 @@ const startNewSession = async (req, res, next) => {
               group.sections.map(async (section) => {
                 const newSection = new SectionNew({
                   name: section.name,
+                  sectionId: section._id.toString(),
                   subjects: section.subjects.map((subject) => ({
                     subject: subject.subject,
                     teacher: subject.teacher._id,
@@ -1194,6 +1195,7 @@ const startNewSession = async (req, res, next) => {
               name: group.name,
               subjects: group.subjects,
               sections: sections[index],
+              groupId: group._id.toString(),
             });
             await newGroup.save();
             return newGroup._id;
@@ -1209,6 +1211,7 @@ const startNewSession = async (req, res, next) => {
           groups: groups,
           fees: crc.fees,
           next: crc.next,
+          courseId: crc._id.toString(),
         });
 
         let savedCourse = await newCourse.save();
@@ -1338,12 +1341,13 @@ const startNewSession = async (req, res, next) => {
                 )
             );
 
-            course.course[index] = crc;
+            school.olderData.students.unshift(...allStudents);
+            school.olderData.courses.unshift(crc2._id);
+            school.course2 = school.course2.filter((el) => !el === crc2._id);
             return;
           }
         });
       }
-
     }
 
     await school.save();

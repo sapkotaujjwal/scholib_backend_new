@@ -8,6 +8,13 @@ const {
   isSameDay,
 } = require("../config/nepaliDate");
 
+const {
+  CourseNew,
+  SectionNew,
+  GroupNew,
+  StudentNew,
+} = require("../schemas/courseSchema");
+
 const { sendMail } = require("../config/sendEmail");
 
 //delete school admission
@@ -32,8 +39,6 @@ const deleteAdmission = async (req, res, next) => {
     });
   }
 };
-
-
 
 // ***************** below here are not optimized and are all old codes ************************
 
@@ -62,8 +67,18 @@ const acceptAdmission = async (req, res, next) => {
   try {
     const { schoolCode, _id } = req.params;
 
-    const school = await School.findOne({ schoolCode });
-
+    const school = await School.findOne({ schoolCode }).populate({
+      path: "course2",
+      populate: {
+        path: "groups",
+        populate: {
+          path: "sections",
+          populate: {
+            path: "students",
+          },
+        },
+      },
+    });
     if (!school) {
       return res.status(404).send({
         success: false,
@@ -72,29 +87,16 @@ const acceptAdmission = async (req, res, next) => {
       });
     }
 
-    let duplicateTest = school.admissions.find(
-      (adm) => adm._id.toString() == _id
-    );
-
-    if (!duplicateTest) {
+    if (!school.admissions.find((adm) => adm._id.toString() == _id)) {
       throw new Error("Student is not in waiting...");
     }
 
-    let student = await Student.findOne({ _id });
-
+    let student = await Student.findOne({ _id, schoolCode });
     if (!student) {
       return res.status(400).send({
         success: false,
         status: "Student Not Found",
         message: "The student you are trying to admit doesn't exist",
-      });
-    }
-
-    if (student.schoolCode !== parseInt(schoolCode)) {
-      return res.status(401).send({
-        success: false,
-        status: "Student failed to be admitted",
-        message: "You cannot admit students of other schools",
       });
     }
 
@@ -111,8 +113,6 @@ const acceptAdmission = async (req, res, next) => {
 
     let tempPass = generateOTP();
     student.password = tempPass;
-
-    await student.save();
 
     const mailOptions = {
       from: "no-reply@ujjwalsapkota.name.np",
@@ -204,14 +204,11 @@ const acceptAdmission = async (req, res, next) => {
 
     const courseId = student.course.class;
     const groupId = student.course.group;
-
-    // add the student to one of the course okay ...
-
-    const course = await Course.findOne({ schoolCode });
+    const course = school.course2;
 
     // Find the course with the provided courseId
-    const selectedCourse = course.course.find(
-      (crc) => crc._id.toString() === courseId
+    const selectedCourse = course.find(
+      (crc) => crc.courseId.toString() === courseId
     );
     if (!selectedCourse) {
       throw new Error("Course not found");
@@ -219,7 +216,7 @@ const acceptAdmission = async (req, res, next) => {
 
     // Find the group with the provided groupId
     const selectedGroup = selectedCourse.groups.find(
-      (grp) => grp._id.toString() === groupId
+      (grp) => grp.groupId.toString() === groupId
     );
     if (!selectedGroup) {
       throw new Error("Group not found");
@@ -230,24 +227,35 @@ const acceptAdmission = async (req, res, next) => {
 
     // Generate a random section index
     const rSectionIndex = Math.floor(Math.random() * allSections.length);
+    const sectionId = allSections[rSectionIndex]._id;
+
+    const studentInfo = new StudentNew({
+      name: student.name,
+      studentId: student._id,
+    });
+    
+    const student01 = await studentInfo.save();
 
     // Push the student into the randomly selected section
-    allSections[rSectionIndex].students.push(student);
-
-    // Save the updated course object back to the database
-    await course.save();
+    await SectionNew.findByIdAndUpdate(
+      sectionId,
+      { $push: { students: student01._id } },
+      { new: true, useFindAndModify: false }
+    );
 
     // Remove student from admissions and add to students list
     school.admissions = school.admissions.filter(
       (adm) => adm._id.toString() !== _id
     );
 
+    // update students field from admissions with the correct course, group and section
     const student2 = JSON.parse(JSON.stringify(student));
-
     student2.course.section = allSections[rSectionIndex]._id;
-
+    student2.course.class = selectedCourse._id;
+    student2.course.group = selectedGroup._id;
     school.students.push(student2);
-    await school.save();
+
+    await Promise.all([student.save(), school.save()]);
 
     next();
   } catch (e) {
