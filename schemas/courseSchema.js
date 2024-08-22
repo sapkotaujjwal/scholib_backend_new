@@ -36,6 +36,11 @@ const CourseNew = mongoose.model("CourseNew", courseSchema);
 
 // Group Schema
 const groupSchema = new mongoose.Schema({
+  schoolCode: {
+    type: Number,
+    ref: "School",
+    required: true,
+  },
   name: String,
   subjects: [{ type: String }],
   groupId: {
@@ -47,6 +52,11 @@ const GroupNew = mongoose.model("GroupNew", groupSchema);
 
 // Section Schema
 const sectionSchema = new mongoose.Schema({
+  schoolCode: {
+    type: Number,
+    ref: "School",
+    required: true,
+  },
   name: String,
   workingDates: [Date],
   sectionId: {
@@ -68,68 +78,79 @@ const SectionNew = mongoose.model("SectionNew", sectionSchema);
 
 // Student Schema
 const studentSchema = new mongoose.Schema({
+  schoolCode: {
+    type: Number,
+    ref: "School",
+    required: true,
+  },
   name: String,
-  roll: String,
-  absentDays: [
+  session: [
     {
-      date: { type: Date, default: getDate().fullDate },
-      reason: { type: String, default: "unknown" },
+      courseId: { type: mongoose.Schema.Types.ObjectId, ref: "CourseNew" },
+      roll: String,
+      absentDays: [
+        {
+          date: { type: Date, default: getDate().fullDate },
+          reason: { type: String, default: "unknown" },
+        },
+      ],
+      discount: [
+        {
+          date: Date,
+          approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
+          amount: { type: Number, min: 0 },
+          remark: { type: String, maxlength: 1000 },
+        },
+      ],
+      fine: [
+        {
+          date: Date,
+          approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
+          amount: { type: Number, min: 0 },
+          remark: { type: String, maxlength: 1000 },
+        },
+      ],
+      previousLeft: { type: Number, default: 0 },
+      paymentHistory: [
+        {
+          date: Date,
+          time: String,
+          amount: Number,
+          approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
+          method: { type: String, enum: ["Cash", "Scholib"] },
+          remark: { type: String, maxlength: 1000 },
+        },
+      ],
+      library: [
+        {
+          date: Date,
+          book: {
+            type: String,
+            required: [true, "Book Name is required"],
+            trim: true,
+            minlength: [2, "Book Name should be at least of two characters"],
+            maxlength: [100, "Book Name cannot exceed 80 characters"],
+          },
+          approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
+          returnDate: Date,
+          status: {
+            type: String,
+            enum: ["Returned", "Not Returned"],
+            default: "Not Returned",
+          },
+          returnedDate: Date,
+        },
+      ],
+      bus: [
+        {
+          place: String,
+          start: Date,
+          end: Date,
+        },
+      ],
     },
   ],
-  discount: [
-    {
-      date: Date,
-      approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
-      amount: { type: Number, min: 0 },
-      remark: { type: String, maxlength: 1000 },
-    },
-  ],
-  fine: [
-    {
-      date: Date,
-      approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
-      amount: { type: Number, min: 0 },
-      remark: { type: String, maxlength: 1000 },
-    },
-  ],
-  previousLeft: { type: Number, default: 0 },
-  paymentHistory: [
-    {
-      date: Date,
-      time: String,
-      amount: Number,
-      approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
-      method: { type: String, enum: ["Cash", "Scholib"] },
-      remark: { type: String, maxlength: 1000 },
-    },
-  ],
-  library: [
-    {
-      date: Date,
-      book: {
-        type: String,
-        required: [true, "Book Name is required"],
-        trim: true,
-        minlength: [2, "Book Name should be at least of two characters"],
-        maxlength: [100, "Book Name cannot exceed 80 characters"],
-      },
-      approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
-      returnDate: Date,
-      status: {
-        type: String,
-        enum: ["Returned", "Not Returned"],
-        default: "Not Returned",
-      },
-      returnedDate: Date,
-    },
-  ],
-  bus: [
-    {
-      place: String,
-      start: Date,
-      end: Date,
-    },
-  ],
+
   studentId: { type: mongoose.Schema.Types.ObjectId, ref: "Student" },
 });
 const StudentNew = mongoose.model("StudentNew", studentSchema);

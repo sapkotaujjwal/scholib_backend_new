@@ -87,18 +87,31 @@ const findSchoolGallery = async (req, res, next) => {
 const findSchoolCourses = async (req, res, next) => {
   try {
     const schoolCode = parseInt(req.params.schoolCode);
-    const courses = await School.findOne({schoolCode}).populate({
-      path: "course",
+    // const courses = await School.findOne({schoolCode}).populate({
+    //   path: "course",
+    //   populate: {
+    //     path: "groups",
+    //     populate: {
+    //       path: "sections",
+    //       select: "-students -exams",
+    //     },
+    //   },
+    // });
+
+    const courses = await School.findOne({ schoolCode }).populate({
+      path: "course2",
       populate: {
         path: "groups",
         populate: {
           path: "sections",
-          select: "-students -exams",
+          select: "-students",
         },
       },
     });
 
-    req.courses = courses;
+    req.courses = {
+      course: courses.course2,
+    };
     next();
   } catch (e) {
     console.log(e);
