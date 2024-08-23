@@ -721,84 +721,54 @@ async function changeCourse(req, res, next) {
       });
     }
 
-    const course = await Course.findOne({ schoolCode }).select("course");
-    const student = findStudent(course, classId, groupId, sectionId, _id);
-
-    if (!student) {
-      return res.status(404).send({
-        success: false,
-        status: "Student course failed to update",
-        message: "The student you are looking for does not exists",
-      });
-    }
-
-    // Remove the student in the old course
-    await Course.findOneAndUpdate(
+    // get the student and update the course
+    const student = await StudentNew.findOneAndUpdate(
       {
-        schoolCode: schoolCode,
-        "course._id": classId,
-        "course.groups._id": groupId,
-        "course.groups.sections._id": sectionId,
+        studentId: _id,
+        schoolCode,
+        "session.courseId": classId,
       },
       {
-        $pull: {
-          "course.$[class].groups.$[group].sections.$[section].students": {
-            _id: student._id,
+        $set: { "session.$.courseId": newCourse.classId },
+      },
+      { new: true }
+    );
+
+    await Promise.all([
+      // delete the student from the old section
+      await SectionNew.findOneAndUpdate(
+        { sectionId: sectionId, schoolCode },
+        {
+          $pull: { students: student._id },
+        }
+      ),
+
+      // add the student to the new section
+      await SectionNew.findOneAndUpdate(
+        { sectionId: newCourse.sectionId, schoolCode },
+        {
+          $push: { students: student._id },
+        }
+      ),
+
+      // update the student in school schema
+      await School.findOneAndUpdate(
+        {
+          schoolCode: schoolCode,
+          "students._id": _id,
+        },
+        {
+          $set: {
+            "students.$[student].course.class": newCourse.classId,
+            "students.$[student].course.group": newCourse.groupId,
+            "students.$[student].course.section": newCourse.sectionId,
           },
         },
-      },
-      {
-        arrayFilters: [
-          { "class._id": classId },
-          { "group._id": groupId },
-          { "section._id": sectionId },
-        ],
-        new: true,
-      }
-    );
-
-    // Add the student to new Course
-    await Course.findOneAndUpdate(
-      {
-        schoolCode: schoolCode,
-        "course._id": newCourse.classId,
-        "course.groups._id": newCourse.groupId,
-        "course.groups.sections._id": newCourse.sectionId,
-      },
-      {
-        $push: {
-          "course.$[class].groups.$[group].sections.$[section].students":
-            student,
-        },
-      },
-      {
-        arrayFilters: [
-          { "class._id": newCourse.classId },
-          { "group._id": newCourse.groupId },
-          { "section._id": newCourse.sectionId },
-        ],
-        new: true,
-      }
-    );
-
-    // update the student in school schema
-    await School.findOneAndUpdate(
-      {
-        schoolCode: schoolCode,
-        "students._id": _id,
-      },
-      {
-        $set: {
-          "students.$[student].course.class": newCourse.classId,
-          "students.$[student].course.group": newCourse.groupId,
-          "students.$[student].course.section": newCourse.sectionId,
-        },
-      },
-      {
-        arrayFilters: [{ "student._id": _id }],
-        new: true,
-      }
-    );
+        {
+          arrayFilters: [{ "student._id": _id }],
+        }
+      ),
+    ]);
 
     next();
   } catch (e) {

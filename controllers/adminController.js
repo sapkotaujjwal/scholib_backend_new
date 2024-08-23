@@ -14,18 +14,24 @@ const { CourseNew, GroupNew, SectionNew } = require("../schemas/courseSchema");
 const createCourse2 = async (req, res, next) => {
   try {
     const schoolCode = req.params.schoolCode;
-    const school = await School.findOne({ schoolCode });
     const data = req.body;
 
     if (data.fees.find((dat) => dat.amount < 0)) {
       throw new Error("No fee amount can be less than 0");
     }
 
-    school.course.push(data);
-    const createdCourse = await school.save();
+    // add the object to the course
+    const createdCourse = await School.findOneAndUpdate(
+      { schoolCode },
+      {
+        $push: { course: data },
+      }
+    );
+
     req.course = createdCourse;
     next();
   } catch (e) {
+    console.log(e);
     return res.status(400).send({
       success: false,
       status: "Course creation failed",
@@ -1175,6 +1181,7 @@ const startNewSession = async (req, res, next) => {
               group.sections.map(async (section) => {
                 const newSection = new SectionNew({
                   name: section.name,
+                  schoolCode,
                   sectionId: section._id.toString(),
                   subjects: section.subjects.map((subject) => ({
                     subject: subject.subject,
@@ -1192,6 +1199,7 @@ const startNewSession = async (req, res, next) => {
         const groups = await Promise.all(
           crc.groups.map(async (group, index) => {
             const newGroup = new GroupNew({
+              schoolCode,
               name: group.name,
               subjects: group.subjects,
               sections: sections[index],
@@ -1321,11 +1329,11 @@ const startNewSession = async (req, res, next) => {
 
       if (!crc.next) {
         tempCourse.forEach((crc2, index) => {
-          if (crc2._id.toString() === crc._id.toString()) {
+          if (crc2.courseId.toString() === crc._id.toString()) {
             function extractStudents(a) {
               let studentsArray = a.groups.flatMap((grp) =>
                 grp.sections.flatMap((sec) =>
-                  sec.students.map((std) => std._id)
+                  sec.students.map((std) => std.studentId)
                 )
               );
 

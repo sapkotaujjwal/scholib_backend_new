@@ -488,7 +488,7 @@ const schoolSchema = new mongoose.Schema({
   ],
 
   course2: [{ type: mongoose.Schema.Types.ObjectId, ref: "CourseNew" }],
-  olderData: [{ type: mongoose.Schema.Types.ObjectId, ref: "OlderData" }],
+  olderData: { type: mongoose.Schema.Types.ObjectId, ref: "OlderData" },
 
   // from other Schemas
   staffs: [staffSchema],
