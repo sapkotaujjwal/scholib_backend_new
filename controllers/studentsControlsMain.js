@@ -375,6 +375,205 @@ async function returnBooks(req, res, next) {
   }
 }
 
+// Change the student course
+async function changeCourse(req, res, next) {
+  try {
+    const { _id, schoolCode } = req.params;
+
+    const { groupId, sectionId, classId } = req.body.cCourse;
+    const newCourse = req.body.nCourse;
+
+    // Check if the request body is in the expected format
+    if (
+      !groupId ||
+      !sectionId ||
+      !classId ||
+      !newCourse.groupId ||
+      !newCourse.sectionId ||
+      !newCourse.classId
+    ) {
+      return res.status(400).send({
+        success: false,
+        status: "Bad Request",
+        message: "Invalid request body format",
+      });
+    }
+
+    // get the student and update the course
+    const student = await StudentNew.findOneAndUpdate(
+      {
+        studentId: _id,
+        schoolCode,
+        "session.courseId": classId,
+      },
+      {
+        $set: { "session.$.courseId": newCourse.classId },
+      },
+      { new: true }
+    );
+
+    await Promise.all([
+      // delete the student from the old section
+      await SectionNew.findOneAndUpdate(
+        { _id: sectionId, schoolCode },
+        {
+          $pull: { students: student._id },
+        }
+      ),
+
+      // add the student to the new section
+      await SectionNew.findOneAndUpdate(
+        { _id: newCourse.sectionId, schoolCode },
+        {
+          $push: { students: student._id },
+        }
+      ),
+
+      // update the student in school schema
+      await School.findOneAndUpdate(
+        {
+          schoolCode: schoolCode,
+          "students._id": _id,
+        },
+        {
+          $set: {
+            "students.$[student].course.class": newCourse.classId,
+            "students.$[student].course.group": newCourse.groupId,
+            "students.$[student].course.section": newCourse.sectionId,
+          },
+        },
+        {
+          arrayFilters: [{ "student._id": _id }],
+        }
+      ),
+    ]);
+
+    next();
+  } catch (e) {
+    return res.status(500).send({
+      success: false,
+      status: "Failed to update student course",
+      message: e.message,
+    });
+  }
+}
+
+// get all students from the course schema
+async function getAllStudentsFromCourse(req, res, next) {
+  try {
+    const { classId, sectionId } = req.query;
+    const { schoolCode } = req.params;
+
+    const section = await SectionNew.findOne({
+      _id: sectionId,
+      schoolCode,
+    }).populate("students");
+
+    // Map the student data to return the required fields
+    // and also here i am making sure i use studentId not _id from studentNew
+    // i don't know why am i use this but it feels so good to use it.. HAHAHAAH
+
+    const students = section.students.map((std) => ({
+      name: std.name,
+      _id: std.studentId,
+      absentdays: std.session.find((ses) => ses.courseId.toString() === classId)
+        .absentDays,
+    }));
+
+    req.students = students;
+
+    next();
+  } catch (e) {
+    return res.status(500).send({
+      success: false,
+      status: "Get Students Failed",
+      message: e.message,
+    });
+  }
+}
+
+// take attendance of a particular class
+async function takeAttendance(req, res, next) {
+  try {
+    const { classId, sectionId } = req.query;
+    const absentStudents = JSON.parse(req.query.absentStudents);
+    const schoolCode = req.staff.schoolCode;
+
+    if (!sectionId || !classId || !absentStudents || !schoolCode) {
+      return res.status(400).send({
+        success: false,
+        status: "Failed to take attendance",
+        message: "Invalid request parameters",
+      });
+    }
+
+    const today = getDate().fullDate;
+
+    // Fetch the section and populate the students
+    const section = await SectionNew.findOne({
+      _id: sectionId,
+      schoolCode,
+    }).populate("students");
+
+    if (!section) {
+      return res.status(404).send({
+        success: false,
+        status: "Failed to take attendance",
+        message: "Section not found",
+      });
+    }
+
+    const students = section.students;
+
+    // Process each student
+    await Promise.all(
+      students.map(async (student) => {
+        const isAbsent = absentStudents.includes(student.studentId.toString());
+
+        // Find the session for the given classId
+        const session = student.session.find(
+          (s) => s.courseId.toString() === classId
+        );
+
+        if (!session) return;
+
+        // Check if the student already has an absence for today
+        const alreadyAbsent = session.absentDays.some((absence) =>
+          isSameDay(absence.date, today)
+        );
+
+        if (isAbsent) {
+          if (!alreadyAbsent) {
+            // Add absence if not already present
+            session.absentDays.push({
+              date: today,
+              reason: "unknown",
+            });
+          }
+        } else {
+          if (alreadyAbsent) {
+            // Remove absence if no longer present
+            session.absentDays = session.absentDays.filter(
+              (absence) => !isSameDay(absence.date, today)
+            );
+          }
+        }
+
+        // Save the student document with updated absence record
+        await student.save();
+      })
+    );
+
+    next();
+  } catch (e) {
+    return res.status(500).send({
+      success: false,
+      status: "Failed to take attendance",
+      message: e.message,
+    });
+  }
+}
+
 // ***************** below here are not optimized and are all old codes ************************
 
 // Suspend student from school
@@ -498,159 +697,6 @@ async function studentProfileUpdate(req, res, next) {
   }
 }
 
-// get all students from the course schema
-async function getAllStudentsFromCourse(req, res, next) {
-  try {
-    const { sectionId, groupId, classId } = req.query;
-
-    const course = await Course.findOne({
-      schoolCode: req.staff.schoolCode,
-    }).select("course");
-
-    if (!course) {
-      return res.status(404).send({
-        success: false,
-        status: "Course not found",
-        message: "Course not found for the given school code",
-      });
-    }
-
-    // Find the class by ID
-    const classData = course.course.find(
-      (clc) => clc._id.toString() === classId
-    );
-    if (!classData) {
-      return res.status(404).send({
-        success: false,
-        status: "Class not found",
-        message: "Class not found for the given class ID",
-      });
-    }
-
-    // Find the group within the class
-    const groupData = classData.groups.find(
-      (grp) => grp._id.toString() === groupId
-    );
-    if (!groupData) {
-      return res.status(404).send({
-        success: false,
-        status: "Group not found",
-        message: "Group not found for the given group ID",
-      });
-    }
-
-    // Find the section within the group
-    const sectionData = groupData.sections.find(
-      (sec) => sec._id.toString() === sectionId
-    );
-    if (!sectionData) {
-      return res.status(404).send({
-        success: false,
-        status: "Section not found",
-        message: "Section not found for the given section ID",
-      });
-    }
-
-    // Map the student data to return the required fields
-    const students = sectionData.students.map((std) => ({
-      name: std.name,
-      _id: std._id,
-      absentdays: std.absentdays,
-    }));
-
-    req.students = students;
-
-    next();
-  } catch (e) {
-    return res.status(500).send({
-      success: false,
-      status: "Get Students Failed",
-      message: e.message,
-    });
-  }
-}
-
-// take attendance of a particular class
-async function takeAttendance(req, res, next) {
-  try {
-    const { sectionId, groupId, classId } = req.query;
-    const absentStudents = JSON.parse(req.query.absentStudents);
-    const schoolCode = req.staff.schoolCode; // Assuming schoolCode is a property of req.staff
-
-    if (!sectionId || !groupId || !classId || !absentStudents || !schoolCode) {
-      return res.status(400).send({
-        success: false,
-        status: "Failed to take attendance",
-        message: "Invalid request parameters",
-      });
-    }
-
-    const course = await Course.findOne({
-      schoolCode: schoolCode,
-      "course._id": classId,
-      "course.groups._id": groupId,
-      "course.groups.sections._id": sectionId,
-    });
-
-    if (!course) {
-      return res.status(404).send({
-        success: false,
-        status: "Failed to take attendance",
-        message: "Course not found",
-      });
-    }
-
-    const currentDate = getDate().fullDate;
-
-    course.course.forEach((c) => {
-      if (c._id.toString() === classId) {
-        c.groups.forEach((group) => {
-          if (group._id.toString() === groupId) {
-            group.sections.forEach((section) => {
-              if (section._id.toString() === sectionId) {
-                section.workingDates.push(currentDate);
-                section.students.forEach((student) => {
-                  const studentId = student._id.toString();
-                  const isAbsent = absentStudents.includes(studentId);
-
-                  if (isAbsent) {
-                    // Check if the student already has an absence for the current date
-                    const alreadyAbsent = student.absentdays.some((absentDay) =>
-                      isSameDay(absentDay.date, currentDate)
-                    );
-
-                    if (!alreadyAbsent) {
-                      student.absentdays.push({
-                        date: currentDate,
-                        reason: "unknown",
-                      });
-                    }
-                  } else {
-                    // Remove the absence for the current date if the student is no longer absent
-                    student.absentdays = student.absentdays.filter(
-                      (absentDay) => !isSameDay(absentDay.date, currentDate)
-                    );
-                  }
-                });
-              }
-            });
-          }
-        });
-      }
-    });
-
-    await course.save();
-
-    next();
-  } catch (e) {
-    return res.status(500).send({
-      success: false,
-      status: "Failed to take attendance",
-      message: e.message,
-    });
-  }
-}
-
 // Delete student from school and from the course
 async function deleteStudent(req, res, next) {
   try {
@@ -697,90 +743,7 @@ async function deleteStudent(req, res, next) {
   }
 }
 
-// Change the student course
-async function changeCourse(req, res, next) {
-  try {
-    const { _id, schoolCode } = req.params;
-
-    const { groupId, sectionId, classId } = req.body.cCourse;
-    const newCourse = req.body.nCourse;
-
-    // Check if the request body is in the expected format
-    if (
-      !groupId ||
-      !sectionId ||
-      !classId ||
-      !newCourse.groupId ||
-      !newCourse.sectionId ||
-      !newCourse.classId
-    ) {
-      return res.status(400).send({
-        success: false,
-        status: "Bad Request",
-        message: "Invalid request body format",
-      });
-    }
-
-    // get the student and update the course
-    const student = await StudentNew.findOneAndUpdate(
-      {
-        studentId: _id,
-        schoolCode,
-        "session.courseId": classId,
-      },
-      {
-        $set: { "session.$.courseId": newCourse.classId },
-      },
-      { new: true }
-    );
-
-    await Promise.all([
-      // delete the student from the old section
-      await SectionNew.findOneAndUpdate(
-        { sectionId: sectionId, schoolCode },
-        {
-          $pull: { students: student._id },
-        }
-      ),
-
-      // add the student to the new section
-      await SectionNew.findOneAndUpdate(
-        { sectionId: newCourse.sectionId, schoolCode },
-        {
-          $push: { students: student._id },
-        }
-      ),
-
-      // update the student in school schema
-      await School.findOneAndUpdate(
-        {
-          schoolCode: schoolCode,
-          "students._id": _id,
-        },
-        {
-          $set: {
-            "students.$[student].course.class": newCourse.classId,
-            "students.$[student].course.group": newCourse.groupId,
-            "students.$[student].course.section": newCourse.sectionId,
-          },
-        },
-        {
-          arrayFilters: [{ "student._id": _id }],
-        }
-      ),
-    ]);
-
-    next();
-  } catch (e) {
-    return res.status(500).send({
-      success: false,
-      status: "Failed to update student course",
-      message: e.message,
-    });
-  }
-}
-
-// *************************** Here i have a basic level of modification *************************
+// *************************** Here i have a basic level of modification and they works but i guess there is a space for more *************************
 
 //accept school admission
 const acceptAdmission = async (req, res, next) => {
@@ -1275,8 +1238,5 @@ module.exports = {
   returnBooks,
   changeCourse,
   takeAttendance,
-
-  // here i have the ones which are already latest version
-
   deleteAdmission,
 };
