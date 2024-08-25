@@ -574,32 +574,6 @@ async function takeAttendance(req, res, next) {
   }
 }
 
-// ***************** below here are not optimized and are all old codes ************************
-
-// Suspend student from school
-async function suspendStudent(req, res, next) {
-  try {
-    const { schoolCode, _id } = req.params;
-    const student = await Student.findOne({ _id, schoolCode });
-
-    student.status = "suspended";
-    req.student = await student.save();
-
-    await School.findOneAndUpdate(
-      { schoolCode, "students._id": _id },
-      { $set: { "students.$": req.student } }
-    );
-
-    next();
-  } catch (e) {
-    return res.status(500).send({
-      success: false,
-      status: "Student failed to suspend",
-      message: e.message,
-    });
-  }
-}
-
 // update the student profile
 async function studentProfileUpdate(req, res, next) {
   try {
@@ -638,53 +612,29 @@ async function studentProfileUpdate(req, res, next) {
       "scholib",
       "tokens",
     ];
+
     unwantedFields.forEach((field) => delete data[field]);
 
     // Update student document
     const updatedStudent = await Student.findOneAndUpdate({ _id }, data, {
       new: true,
     });
-
-    // Update corresponding student record in the school document
-    const schoolUpdate = await School.findOneAndUpdate(
-      { schoolCode, "students._id": _id },
-      { $set: { "students.$": updatedStudent } },
-      { new: true }
-    );
-
-    // Update student's name in the course document
-    const studentData = schoolUpdate.students.find(
-      (std) => std._id.toString() === _id
-    ).course;
-    const groupId = studentData.group;
-    const sectionId = studentData.section;
-    const classId = studentData.class;
-
-    await Course.findOneAndUpdate(
-      {
-        schoolCode,
-        "course._id": classId,
-        "course.groups._id": groupId,
-        "course.groups.sections._id": sectionId,
-        "course.groups.sections.students._id": _id,
-        "course.groups.sections.students.bus": { $exists: true },
-      },
-      {
-        $set: {
-          "course.$[class].groups.$[group].sections.$[section].students.$[student].name":
-            updatedStudent.name,
+    await Promise.all([
+      School.findOneAndUpdate(
+        { schoolCode, "students._id": _id },
+        { $set: { "students.$": updatedStudent } },
+        { new: true }
+      ),
+      StudentNew.findOneAndUpdate(
+        {
+          studentId: _id,
+          schoolCode,
         },
-      },
-      {
-        arrayFilters: [
-          { "class._id": classId },
-          { "group._id": groupId },
-          { "section._id": sectionId },
-          { "student._id": _id },
-        ],
-        new: true,
-      }
-    );
+        {
+          $set: { name: data.name },
+        }
+      ),
+    ]);
 
     req.student = updatedStudent;
     next();
@@ -692,6 +642,32 @@ async function studentProfileUpdate(req, res, next) {
     return res.status(500).send({
       success: false,
       status: `Student Profile updation failed`,
+      message: e.message,
+    });
+  }
+}
+
+// ***************** below here are not optimized and are all old codes ************************
+
+// Suspend student from school this one is okay but i am not sure will i ever use it or not 
+async function suspendStudent(req, res, next) {
+  try {
+    const { schoolCode, _id } = req.params;
+    const student = await Student.findOne({ _id, schoolCode });
+
+    student.status = "suspended";
+    req.student = await student.save();
+
+    await School.findOneAndUpdate(
+      { schoolCode, "students._id": _id },
+      { $set: { "students.$": req.student } }
+    );
+
+    next();
+  } catch (e) {
+    return res.status(500).send({
+      success: false,
+      status: "Student failed to suspend",
       message: e.message,
     });
   }

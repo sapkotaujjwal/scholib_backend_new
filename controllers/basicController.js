@@ -11,68 +11,23 @@ const { verifyStaff, verifyStudent } = require("../middlewares/verifyToken2");
 const findSchoolHome = async (req, res, next) => {
   try {
     const schoolCode = req.params.schoolCode;
+    req.school = await School.findOne({ schoolCode }).select({
+      students: 0,
+      admissions: 0,
+      olderData: 0,
+    });
 
-    const school = await School.findOne({ schoolCode });
-
-    // part of code which is rubbish
-
-    await School.findOne({ schoolCode });
-    await School.findOne({ schoolCode });
-
-
-    function generateRandomString(length) {
-      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-      let result = '';
-      for (let i = 0; i < length; i++) {
-          result += characters.charAt(Math.floor(Math.random() * characters.length));
-      }
-      return result;
-  }
-  
-  function generateRandomEmail() {
-      const domains = ['example.com', 'mail.com', 'test.com'];
-      return generateRandomString(5) + '@' + domains[Math.floor(Math.random() * domains.length)];
-  }
-  
-  function generateRandomObjectsArray(numObjects) {
-      const objectsArray = [];
-      
-      for (let i = 0; i < numObjects; i++) {
-          const randomObject = {
-              id: i + 1,
-              name: generateRandomString(7),
-              age: Math.floor(Math.random() * 60) + 18, // Age between 18 and 77
-              email: generateRandomEmail()
-          };
-          objectsArray.push(randomObject);
-      }
-      
-      return objectsArray;
-  }
-  
-  const randomObjectsArray = generateRandomObjectsArray(200);
-  
-
-
-    // End of rubbish code
-
-
-
-    if (!school) {
-      return res.status(404).send({
+    if (!req.school) {
+      res.status(404).send({
         success: false,
-        status: "School not found",
-        message: ` The school you are looking for isn't found. Try checking your schoolCode `,
+        status: "School Not Found",
+        message: "The schoolCode you provided does not exists... ",
       });
     }
 
-    school.students = [];
-    school.admissions = [];
-
-    req.school = school;
-
     next();
   } catch (e) {
+    console.log(e);
     res.status(500).send({
       success: false,
       status: "Something went wrong",
@@ -132,16 +87,6 @@ const findSchoolGallery = async (req, res, next) => {
 const findSchoolCourses = async (req, res, next) => {
   try {
     const schoolCode = parseInt(req.params.schoolCode);
-    // const courses = await School.findOne({schoolCode}).populate({
-    //   path: "course",
-    //   populate: {
-    //     path: "groups",
-    //     populate: {
-    //       path: "sections",
-    //       select: "-students -exams",
-    //     },
-    //   },
-    // });
 
     const courses = await School.findOne({ schoolCode }).populate({
       path: "course2",
