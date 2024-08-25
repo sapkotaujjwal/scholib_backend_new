@@ -488,7 +488,7 @@ const schoolSchema = new mongoose.Schema({
   ],
 
   course2: [{ type: mongoose.Schema.Types.ObjectId, ref: "CourseNew" }],
-  olderData: { type: mongoose.Schema.Types.ObjectId, ref: "OlderData" },
+  olderData: [{ type: mongoose.Schema.Types.ObjectId, ref: "OlderData" }],
 
   // from other Schemas
   staffs: [staffSchema],
@@ -587,6 +587,10 @@ async function generateUniqueCode(model) {
 }
 
 const olderDataSchema = new mongoose.Schema({
+  year: {
+    type: Date,
+    default: getDate().fullDate,
+  },
   students: [{ type: mongoose.Schema.Types.ObjectId, ref: "StudentNew" }],
   courses: [{ type: mongoose.Schema.Types.ObjectId, ref: "CourseNew" }],
 });

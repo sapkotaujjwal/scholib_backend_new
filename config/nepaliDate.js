@@ -1,4 +1,4 @@
-// ************ Here i am working here Nepali date soon i want it to be changed to UTC date and remove this comment ****************** 
+// ************ Here i am working here Nepali date soon i want it to be changed to UTC date and remove this comment ******************
 
 const { adToBs } = require("@sbmdkl/nepali-date-converter");
 
