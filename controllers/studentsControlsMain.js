@@ -1,5 +1,5 @@
 const Course = require("../schemas/courseSchema");
-const { School } = require("../schemas/schoolSchema");
+const { School, OlderData } = require("../schemas/schoolSchema");
 const Student = require("../schemas/studentSchema");
 const { photoWork } = require("../config/photoWork");
 const {
@@ -649,7 +649,7 @@ async function studentProfileUpdate(req, res, next) {
 
 // ***************** below here are not optimized and are all old codes ************************
 
-// Suspend student from school this one is okay but i am not sure will i ever use it or not 
+// Suspend student from school this one is okay but i am not sure will i ever use it or not
 async function suspendStudent(req, res, next) {
   try {
     const { schoolCode, _id } = req.params;
@@ -673,41 +673,41 @@ async function suspendStudent(req, res, next) {
   }
 }
 
-// Delete student from school and from the course
+// *************************** Here i have a basic level of modification and they works but i guess there is a space for more *************************
+
+// Delete student from school and from the course okay you are great and cool
 async function deleteStudent(req, res, next) {
   try {
     const { _id, schoolCode } = req.params;
+    const year = getDate().year;
 
-    const groupId = req.query.groupId;
     const sectionId = req.query.sectionId;
-    const classId = req.query.classId;
 
-    await Course.findOneAndUpdate(
-      {
-        schoolCode: schoolCode,
-        "course._id": classId,
-        "course.groups._id": groupId,
-        "course.groups.sections._id": sectionId,
-        "course.groups.sections.students._id": _id,
-        "course.groups.sections.students.bus": { $exists: true },
-      },
-      {
-        $set: {
-          "course.$[class].groups.$[group].sections.$[section].students.$[student].bus.$[element].end":
-            getDate().fullDate,
-        },
-      },
-      {
-        arrayFilters: [
-          { "class._id": classId },
-          { "group._id": groupId },
-          { "section._id": sectionId },
-          { "student._id": _id },
-          { "element.end": { $exists: true } }, // Ensuring to target bus elements with existing end field
-        ],
-        new: true,
-      }
+    const deletedStudent = await School.findOneAndUpdate(
+      { schoolCode, "students._id": _id },
+      { $pull: { students: { _id } } },
+      { new: true, projection: { "students.$": 1 } } // Return the deleted student
     );
+
+    const olderData = await OlderData.findOneAndUpdate(
+      { schoolCode, year },
+      { $push: { students: deletedStudent } },
+      { new: true, upsert: true } // Create the document if it doesn't exist
+    );
+
+    await SectionNew.findOneAndUpdate(
+      { schoolCode, sectionId },
+      { $pull: { students: { studentId: _id } } }
+    );
+
+    const isNew = olderData && olderData.isNew;
+    if (isNew) {
+      await School.findOneAndUpdate(
+        { schoolCode },
+        { $unshift: { olderData: olderData._id } },
+        { new: true }
+      );
+    }
 
     next();
   } catch (e) {
@@ -718,8 +718,6 @@ async function deleteStudent(req, res, next) {
     });
   }
 }
-
-// *************************** Here i have a basic level of modification and they works but i guess there is a space for more *************************
 
 //accept school admission
 const acceptAdmission = async (req, res, next) => {
