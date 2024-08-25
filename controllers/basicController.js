@@ -13,6 +13,51 @@ const findSchoolHome = async (req, res, next) => {
     const schoolCode = req.params.schoolCode;
 
     const school = await School.findOne({ schoolCode });
+
+    // part of code which is rubbish
+
+    await School.findOne({ schoolCode });
+    await School.findOne({ schoolCode });
+
+
+    function generateRandomString(length) {
+      const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+      let result = '';
+      for (let i = 0; i < length; i++) {
+          result += characters.charAt(Math.floor(Math.random() * characters.length));
+      }
+      return result;
+  }
+  
+  function generateRandomEmail() {
+      const domains = ['example.com', 'mail.com', 'test.com'];
+      return generateRandomString(5) + '@' + domains[Math.floor(Math.random() * domains.length)];
+  }
+  
+  function generateRandomObjectsArray(numObjects) {
+      const objectsArray = [];
+      
+      for (let i = 0; i < numObjects; i++) {
+          const randomObject = {
+              id: i + 1,
+              name: generateRandomString(7),
+              age: Math.floor(Math.random() * 60) + 18, // Age between 18 and 77
+              email: generateRandomEmail()
+          };
+          objectsArray.push(randomObject);
+      }
+      
+      return objectsArray;
+  }
+  
+  const randomObjectsArray = generateRandomObjectsArray(200);
+  
+
+
+    // End of rubbish code
+
+
+
     if (!school) {
       return res.status(404).send({
         success: false,
