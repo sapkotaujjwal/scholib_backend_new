@@ -55,7 +55,7 @@ app.all('*', (req, res) => {
   res.status(404).send({
     success: false,
     status: "Not Found",
-    message: "The resource you are looking for is not available OKAY",
+    message: "The resource you are looking for is not available",
   });
 });
 

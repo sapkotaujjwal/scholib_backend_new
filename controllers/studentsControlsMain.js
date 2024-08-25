@@ -695,9 +695,11 @@ async function deleteStudent(req, res, next) {
       { new: true, upsert: true } // Create the document if it doesn't exist
     );
 
+    const student = await StudentNew.findOne({ schoolCode, studentId: _id });
+
     await SectionNew.findOneAndUpdate(
       { schoolCode, sectionId },
-      { $pull: { students: { studentId: _id } } }
+      { $pull: { students: { studentId: student._id } } }
     );
 
     const isNew = olderData && olderData.isNew;

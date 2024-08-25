@@ -298,20 +298,19 @@ router.post(
   }
 );
 
-// Delete the student from the place entirely
+// Delete the student from the section and remove from school.students and add in         olderData.students with year adjustment
 router.delete(
-  "/:schoolCode/student/delete/:_id",
+  "/:schoolCode/student/:_id/delete",
   verifySchoolStaff,
   checkAdmin,
   deleteStudent,
   (req, res) => {
     res.status(200).send({
       success: true,
-      status: "Student Suspended",
-      message: "Student has been suspended successfully",
+      status: "Student Deleted",
+      message: "Student has been deleted successfully",
     });
   }
 );
-
 
 module.exports = router;
