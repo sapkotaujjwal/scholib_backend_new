@@ -596,7 +596,7 @@ const olderDataSchema = new mongoose.Schema({
     ref: "School",
     required: true,
   },
-  students: [{ type: mongoose.Schema.Types.ObjectId, ref: "StudentNew" }],
+  students: [StudentSchemaNew],
   courses: [{ type: mongoose.Schema.Types.ObjectId, ref: "CourseNew" }],
 });
 

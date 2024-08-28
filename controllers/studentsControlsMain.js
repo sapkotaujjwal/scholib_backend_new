@@ -675,35 +675,60 @@ async function suspendStudent(req, res, next) {
 
 // *************************** Here i have a basic level of modification and they works but i guess there is a space for more *************************
 
-// Delete student from school and from the course okay you are great and cool
+// Delete student from school and from the course okay and this one has atomicity
 async function deleteStudent(req, res, next) {
   try {
     const { _id, schoolCode } = req.params;
     const year = getDate().year;
 
-    const sectionId = req.query.sectionId;
+    // throw new Error('')
 
-    const deletedStudent = await School.findOneAndUpdate(
+    // Find the student first
+    const school = await School.findOne(
       { schoolCode, "students._id": _id },
-      { $pull: { students: { _id } } },
-      { new: true, projection: { "students.$": 1 } } // Return the deleted student
+      { "students.$": 1 } // Only return the matching student
     );
 
+    if (!school || !school.students || !school.students.length) {
+      return res.status(404).send({
+        success: false,
+        status: "Student not found",
+        message: "No student found with the given ID",
+      });
+    }
+
+    const deletedStudent = school.students[0]; // Extract the student
+    const sectionId = deletedStudent.course.section;
+
+    // Now delete the student from school
+    await School.findOneAndUpdate(
+      { schoolCode },
+      { $pull: { students: { _id } } }
+    );
+
+    // Push the deleted student to OlderData
     const olderData = await OlderData.findOneAndUpdate(
       { schoolCode, year },
       { $push: { students: deletedStudent } },
-      { new: true, upsert: true } // Create the document if it doesn't exist
+      { new: true, upsert: true }
     );
 
     const student = await StudentNew.findOne({ schoolCode, studentId: _id });
+    if (!student) {
+      return res.status(404).send({
+        success: false,
+        status: "Student not found in StudentNew",
+        message: "No student found in StudentNew with the given ID",
+      });
+    }
 
     await SectionNew.findOneAndUpdate(
-      { schoolCode, sectionId },
-      { $pull: { students: { studentId: student._id } } }
+      { schoolCode, _id: sectionId },
+      { $pull: { students: student._id } }
     );
 
-    const isNew = olderData && olderData.isNew;
-    if (isNew) {
+    // Add olderData ID to School if new
+    if (olderData && olderData.isNew) {
       await School.findOneAndUpdate(
         { schoolCode },
         { $unshift: { olderData: olderData._id } },
@@ -713,9 +738,10 @@ async function deleteStudent(req, res, next) {
 
     next();
   } catch (e) {
+    console.log(e);
     return res.status(500).send({
       success: false,
-      status: "Failed to stop bus service",
+      status: "Failed to delete the student",
       message: e.message,
     });
   }
