@@ -1329,7 +1329,7 @@ const startNewSession = async (req, res, next) => {
       }
 
       if (!crc.next) {
-        tempCourse.forEach(async (crc2, index) => {
+        tempCourse.map(async (crc2, index) => {
           if (crc2.courseId.toString() === crc._id.toString()) {
             function extractStudents(a) {
               let studentsArray = a.groups.flatMap((grp) =>
@@ -1371,8 +1371,9 @@ const startNewSession = async (req, res, next) => {
                 )
             );
 
-            school.course2 = school.course2.filter((el) => !el === crc2._id);
-            return;
+            school.course2 = school.course2.filter(
+              (el) => el.toString() !== crc2._id.toString()
+            );
           }
         });
       }
