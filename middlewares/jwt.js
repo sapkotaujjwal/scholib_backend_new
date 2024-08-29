@@ -46,7 +46,7 @@ async function generateTokenStudent(req, res, next) {
       device,
       token,
     };
-    user.tokens.push(tokenObject);
+    user.tokens.unshift(tokenObject);
     req.user = await Student.findOneAndUpdate({ _id: user._id }, user, {
       new: true,
     });
@@ -92,7 +92,7 @@ async function generateTokenStaff(req, res, next) {
       device,
       token,
     };
-    user.tokens.push(tokenObject);
+    user.tokens.unshift(tokenObject);
     req.user = await Staff.findOneAndUpdate({ _id: user._id }, user, {
       new: true,
     });

@@ -588,7 +588,7 @@ async function generateUniqueCode(model) {
 
 const olderDataSchema = new mongoose.Schema({
   year: {
-    type: Date,
+    type: Number,
     default: getDate().year,
   },
   schoolCode: {

@@ -158,12 +158,13 @@ async function startBusService(req, res, next) {
     const location = req.query.location;
 
     // Define the update operation
+
     const updateResult = await StudentNew.updateOne(
       {
         studentId: _id,
         schoolCode,
         "session.courseId": classId,
-        "session.bus.0.end": { $exists: false }, // Check if bus service is already active
+        "session.bus.0.end": { $exists: true }, // Check if bus service is already active
       },
       {
         $push: {
@@ -182,6 +183,7 @@ async function startBusService(req, res, next) {
 
     next();
   } catch (e) {
+    console.log(e);
     return res.status(500).send({
       success: false,
       status: "Failed to start bus service",
@@ -681,8 +683,6 @@ async function deleteStudent(req, res, next) {
     const { _id, schoolCode } = req.params;
     const year = getDate().year;
 
-    // throw new Error('')
-
     // Find the student first
     const school = await School.findOne(
       { schoolCode, "students._id": _id },
@@ -713,6 +713,15 @@ async function deleteStudent(req, res, next) {
       { new: true, upsert: true }
     );
 
+    // Add olderData ID to School if new
+    if (olderData && olderData.isNew) {
+      await School.findOneAndUpdate(
+        { schoolCode },
+        { $unshift: { olderData: olderData._id } },
+        { new: true }
+      );
+    }
+
     const student = await StudentNew.findOne({ schoolCode, studentId: _id });
     if (!student) {
       return res.status(404).send({
@@ -726,15 +735,6 @@ async function deleteStudent(req, res, next) {
       { schoolCode, _id: sectionId },
       { $pull: { students: student._id } }
     );
-
-    // Add olderData ID to School if new
-    if (olderData && olderData.isNew) {
-      await School.findOneAndUpdate(
-        { schoolCode },
-        { $unshift: { olderData: olderData._id } },
-        { new: true }
-      );
-    }
 
     next();
   } catch (e) {

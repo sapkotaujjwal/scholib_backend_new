@@ -1,6 +1,6 @@
 const cloudinary = require("../config/cloudinary");
 const Course = require("../schemas/courseSchema");
-const { School } = require("../schemas/schoolSchema");
+const { School, OlderData } = require("../schemas/schoolSchema");
 const Staff = require("../schemas/staffSchema");
 const Gallery = require("../schemas/gallerySchema");
 const { photoWork } = require("../config/photoWork");
@@ -1146,6 +1146,7 @@ const startNewSession = async (req, res, next) => {
   try {
     const { schoolCode } = req.params;
     const classesList = JSON.parse(req.query.classesList);
+    const year = getDate().year;
 
     const school = await School.findOne({ schoolCode }).populate({
       path: "course2",
@@ -1328,7 +1329,7 @@ const startNewSession = async (req, res, next) => {
       }
 
       if (!crc.next) {
-        tempCourse.forEach((crc2, index) => {
+        tempCourse.forEach(async (crc2, index) => {
           if (crc2.courseId.toString() === crc._id.toString()) {
             function extractStudents(a) {
               let studentsArray = a.groups.flatMap((grp) =>
@@ -1342,15 +1343,34 @@ const startNewSession = async (req, res, next) => {
 
             const allStudents = extractStudents(tempCourse[index]);
 
+            const studentsToDelete = school.students.filter((stu) =>
+              allStudents.some((stu2) => stu2.toString() === stu._id.toString())
+            );
+
+            // Push the deleted student to OlderData
+            const olderData = await OlderData.findOneAndUpdate(
+              { schoolCode, year },
+              {
+                $push: {
+                  students: { $each: studentsToDelete }, // here studentsToDelete is an array
+                  courses: crc2._id, // Directly push the single course ID
+                },
+              },
+              { new: true, upsert: true }
+            );
+
+            // Add olderData ID to School if new
+            if (olderData && olderData.isNew) {
+              school.olderData.unshift(olderData._id);
+            }
+
             school.students = school.students.filter(
               (stu) =>
-                !allStudents.find(
+                !allStudents.some(
                   (stu2) => stu2.toString() === stu._id.toString()
                 )
             );
 
-            school.olderData.students.unshift(...allStudents);
-            school.olderData.courses.unshift(crc2._id);
             school.course2 = school.course2.filter((el) => !el === crc2._id);
             return;
           }
