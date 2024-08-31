@@ -251,19 +251,6 @@ async function getExamInfo(req, res, next) {
       });
     }
 
-    exam = exam.exam.find(
-      (ind) =>
-        ind.year === getDate().year && ind.course.class.toString() === classId
-    );
-
-    if (!exam) {
-      return res.status(404).send({
-        success: false,
-        status: "Exam not found",
-        message: "No exam record found for the given class and year.",
-      });
-    }
-
     req.data = exam;
 
     next();
@@ -425,7 +412,7 @@ async function createNewStaff(req, res, next) {
     const createdStaff = await staffFinal.save();
 
     const mailOptions = {
-      from: "no-reply@ujjwalsapkota.name.np",
+      from: process.env.EMAIL_ID1,
       to: createdStaff.email,
       subject: `Scholib account created || Login to ${school.name}`,
       html: `

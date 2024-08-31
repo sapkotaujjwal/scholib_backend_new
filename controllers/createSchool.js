@@ -12,8 +12,6 @@ const { photoWork } = require("../config/photoWork");
 const Library = require("../schemas/librarySchema");
 const { sendMail } = require("../config/sendEmail");
 
-require("dotenv").config({ path: "./config/config.env" });
-
 // scholib signin
 const signinController = async (req, res, next) => {
   try {
@@ -171,7 +169,7 @@ const loginController = async (req, res, next) => {
 //     const schoolRetrived = await schoolFind.save();
 
 //     const mailOptions = {
-//       from: "no-reply@ujjwalsapkota.name.np",
+//       from: process.env.EMAIL_ID1,
 //       to: createdStaff.email,
 //       subject: `Scholib account created || Login to ${schoolRetrived.name}`,
 //       html: `
@@ -359,7 +357,7 @@ function generateOTP(length = 8) {
 
 function sendWelcomeEmail(createdStaff, school, tempPass) {
   const mailOptions = {
-    from: "no-reply@ujjwalsapkota.name.np",
+    from: process.env.EMAIL_ID1,
     to: createdStaff.email,
     subject: `Scholib account created || Login to ${school.name}`,
     html: `

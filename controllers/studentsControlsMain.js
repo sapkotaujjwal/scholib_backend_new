@@ -800,7 +800,7 @@ const acceptAdmission = async (req, res, next) => {
     student.password = tempPass;
 
     const mailOptions = {
-      from: "no-reply@ujjwalsapkota.name.np",
+      from: process.env.EMAIL_ID1,
       to: student.email,
       subject: `Scholib account created || Login to ${school.name}`,
       html: `
@@ -1062,7 +1062,7 @@ const updateAndAcceptAdmission = async (req, res, next) => {
     }
 
     const mailOptions = {
-      from: "no-reply@ujjwalsapkota.name.np",
+      from: process.env.EMAIL_ID1,
       to: updatedDoc1.email,
       subject: `Scholib account created || Login to ${school.name}`,
       html: `

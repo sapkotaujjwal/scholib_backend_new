@@ -8,6 +8,8 @@ const {
 } = require("../middlewares/jwt");
 const { sendMail } = require("../config/sendEmail");
 
+require("dotenv").config({ path: "../config/config.env" });
+
 //change password
 async function changePassword(req, res, next) {
   try {
@@ -179,7 +181,7 @@ async function generateOtp(req, res, next) {
     };
 
     const mailOptions = {
-      from: "no-reply@ujjwalsapkota.name.np",
+      from: process.env.EMAIL_ID1,
       to: user.email,
       subject: "Reset your password || OTP",
       html: `

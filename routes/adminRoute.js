@@ -223,8 +223,6 @@ router.get(
   }
 );
 
-addStaff;
-
 // delete a review
 router.delete(
   "/:schoolCode/review/:_id",
