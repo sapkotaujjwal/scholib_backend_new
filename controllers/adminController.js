@@ -117,74 +117,24 @@ async function addExam(req, res, next) {
     const schoolCode = req.staff.schoolCode;
     const classesList = JSON.parse(req.query.classesList);
 
-    const exam = await Exam.findOne({ schoolCode });
-    const course = await Course.findOne({ schoolCode }).select("course");
+    const courses = await CourseNew.find({ _id: { $in: classesList } })
+      .populate({
+        path: "groups",
+      })
+      .exec();
 
-    if (!exam) {
-      return res.status(404).send({
-        success: false,
-        status: "Exam not found",
-        message: "No exam record found for the given school code.",
-      });
-    }
+    const getAllSections = (courses) => {
+      const sections = courses
+        .flatMap((course) => course.groups) // Flatten all groups from each course
+        .flatMap((group) => group.sections); // Flatten all sections from each group
 
-    if (!course) {
-      return res.status(404).send({
-        success: false,
-        status: "Course not found",
-        message: "No course record found for the given school code.",
-      });
-    }
+      return sections;
+    };
 
-    const newClasses = course.course.filter((crc) =>
-      classesList.includes(crc._id.toString())
-    );
+    const allSections = getAllSections(courses);
 
-    newClasses.forEach((eachClass) => {
-      const existingAlready = exam.exam.find(
-        (each) => each.course && each.course.class === eachClass._id.toString()
-      );
+    throw new Error("Okay adding");
 
-      const newObj = {
-        section: eachClass.groups.flatMap((grp) =>
-          grp.sections.map((sec) => {
-            const allStudents = sec.students.map((std, index) => ({
-              _id: std._id.toString(),
-              roll: index + 1,
-            }));
-
-            return {
-              _id: sec._id.toString(),
-              subjects: sec.subjects.map((sub) => ({
-                _id: sub._id,
-                subject: sub.name,
-                teacher: sub.teacher,
-                fullMarks: 100,
-                passMarks: 40,
-                students: allStudents,
-              })),
-            };
-          })
-        ),
-      };
-
-      if (existingAlready) {
-        console.log(existingAlready);
-
-        existingAlready.course.term.push(newObj);
-      } else {
-        const objTop = {
-          year: getDate().year,
-          course: {
-            class: eachClass._id.toString(),
-            term: [newObj],
-          },
-        };
-        exam.exam.push(objTop);
-      }
-    });
-
-    await exam.save();
     next();
   } catch (e) {
     return res.status(500).send({
@@ -238,20 +188,32 @@ async function publishResult(req, res, next) {
 async function getExamInfo(req, res, next) {
   try {
     const schoolCode = req.staff.schoolCode;
-    const year = req.query.year;
-    const classId = req.query.classId;
+    const sectionIds = req.query.sectionIds;
 
-    let exam = await Exam.findOne({ schoolCode });
+    const sections = await SectionNew.find({
+      _id: { $in: sectionIds },
+      schoolCode,
+    })
+      .populate("exam")
+      .exec();
 
-    if (!exam) {
+    if (sections.length === 0) {
       return res.status(404).send({
         success: false,
         status: "Exam not found",
-        message: "No exam record found for the given schoolCode.",
+        message: "No exam record found for the given class.",
       });
     }
 
-    req.data = exam;
+    req.data = sections.map((ind) => ind.exams);
+
+    if (!req.data[0]) {
+      return res.status(404).send({
+        success: false,
+        status: "Exam not found",
+        message: "No exam record found for the given class.",
+      });
+    }
 
     next();
   } catch (e) {
@@ -1167,8 +1129,17 @@ const startNewSession = async (req, res, next) => {
           crc.groups.map(async (group) =>
             Promise.all(
               group.sections.map(async (section) => {
+                // Create Exam First
+                const newExam = new Exam({
+                  schoolCode,
+                  term: [],
+                });
+                await newExam.save();
+
+                // Create Exam
                 const newSection = new SectionNew({
                   name: section.name,
+                  exam: newExam._id,
                   schoolCode,
                   sectionId: section._id.toString(),
                   subjects: section.subjects.map((subject) => ({

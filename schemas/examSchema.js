@@ -1,6 +1,11 @@
 const mongoose = require("mongoose");
 
 const ExamSchema = new mongoose.Schema({
+  schoolCode: {
+    type: Number,
+    ref: "School",
+    required: true,
+  },
   term: [
     {
       termName: {

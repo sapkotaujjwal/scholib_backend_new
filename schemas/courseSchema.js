@@ -72,7 +72,7 @@ const sectionSchema = new mongoose.Schema({
     },
   ],
   students: [{ type: mongoose.Schema.Types.ObjectId, ref: "StudentNew" }],
-  exams: { type: mongoose.Schema.Types.ObjectId, ref: "Exam" },
+  exam: { type: mongoose.Schema.Types.ObjectId, ref: "Exam" },
 });
 const SectionNew = mongoose.model("SectionNew", sectionSchema);
 
