@@ -120,20 +120,49 @@ async function addExam(req, res, next) {
     const courses = await CourseNew.find({ _id: { $in: classesList } })
       .populate({
         path: "groups",
+        populate: {
+          path: "sections",
+          model: "SectionNew",
+        },
       })
       .exec();
 
     const getAllSections = (courses) => {
       const sections = courses
-        .flatMap((course) => course.groups) // Flatten all groups from each course
-        .flatMap((group) => group.sections); // Flatten all sections from each group
-
+        .flatMap((course) => course.groups)
+        .flatMap((group) => group.sections);
       return sections;
     };
 
     const allSections = getAllSections(courses);
 
-    throw new Error("Okay adding");
+    const obj = allSections.map((sec) => {
+      let students = sec.students.map((stu) => {
+        return { student: stu };
+      });
+
+      return {
+        exam: sec.exam,
+        subjects: sec.subjects.map((sub) => {
+          return {
+            subject: sub.subject,
+            students: students,
+            _id: sub._id
+          };
+        }),
+      };
+    });
+
+    obj.map(async (eac) => {
+      await Exam.updateOne(
+        { _id: eac.exam, schoolCode: schoolCode },
+        {
+          $push: {
+            term: { subjects: eac.subjects },
+          },
+        }
+      );
+    });
 
     next();
   } catch (e) {
@@ -205,7 +234,13 @@ async function getExamInfo(req, res, next) {
       });
     }
 
-    req.data = sections.map((ind) => ind.exams);
+    req.data = sections.map((ind) => {
+      return {
+        section: ind._id,
+        exam: ind.exam,
+      };
+    });
+    
 
     if (!req.data[0]) {
       return res.status(404).send({
@@ -1461,13 +1496,14 @@ module.exports = {
   deleteOthersTab,
   updateOthersTab,
   findSchoolCoursesAdmin,
+
   addExam,
   publishResult,
   getExamInfo,
+
   createCourse2,
   updateCourseNext,
   startNewSession,
-
   suspendStaff,
   addStaff,
 };

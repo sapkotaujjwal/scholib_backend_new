@@ -52,6 +52,7 @@ const StudentSchemaNew = new mongoose.Schema({
     immutable: true,
     unique: true,
     required: true,
+    sparse: true, // This allows multiple null values
   },
   oldCourses: [
     {

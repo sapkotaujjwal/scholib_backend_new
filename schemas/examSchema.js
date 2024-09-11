@@ -24,6 +24,9 @@ const ExamSchema = new mongoose.Schema({
       },
       subjects: [
         {
+          _id: {
+            type: String,
+          },
           subject: {
             type: String,
           },
