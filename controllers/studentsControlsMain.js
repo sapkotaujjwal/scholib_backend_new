@@ -915,6 +915,7 @@ const acceptAdmission = async (req, res, next) => {
     const studentInfo = new StudentNew({
       name: student.name,
       schoolCode,
+      _id: student._id,
       studentId: student._id,
       session: {
         courseId: selectedCourse._id,
@@ -1181,6 +1182,7 @@ const updateAndAcceptAdmission = async (req, res, next) => {
 
     const studentInfo = new StudentNew({
       name: updatedDoc.name,
+      _id: updatedDoc._id,
       studentId: updatedDoc._id,
       schoolCode,
       session: {

@@ -56,9 +56,11 @@ const ExamSchema = new mongoose.Schema({
               },
               obtainedMarks: {
                 type: Number,
+                default: 0,
               },
               obtainedMarks2: {
                 type: Number,
+                default: 0,
               },
             },
           ],
