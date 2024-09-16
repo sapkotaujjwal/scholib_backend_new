@@ -147,7 +147,7 @@ async function addExam(req, res, next) {
           return {
             subject: sub.subject,
             students: students,
-            _id: sub._id
+            _id: sub._id,
           };
         }),
       };
@@ -178,30 +178,20 @@ async function addExam(req, res, next) {
 async function publishResult(req, res, next) {
   try {
     const schoolCode = req.staff.schoolCode;
-    const classesList = JSON.parse(req.query.classesList);
+    const examIds = JSON.parse(req.query.examsList);
+    const currentDate = getDate().fullDate;
 
-    const exam = await Exam.findOne({ schoolCode });
+    await Exam.updateMany(
+      { _id: { $in: examIds }, schoolCode },
+      {
+        $set: {
+          "term.$[].status": "Published",
+          "term.$[].publishedDate": currentDate,
+        },
+      },
+      { multi: true }
+    );
 
-    if (!exam) {
-      return res.status(404).send({
-        success: false,
-        status: "Exam not found",
-        message: "No exam record found for the given schoolCode.",
-      });
-    }
-
-    exam.exam.map((ind) => {
-      if (classesList.includes(ind.course.class)) {
-        ind.course.term.map((term) => {
-          if (term.status !== "Published") {
-            term.status = "Published";
-            term.publishedDate = getDate().fullDate;
-          }
-        });
-      }
-    });
-
-    await exam.save();
     next();
   } catch (e) {
     console.log(e);
@@ -240,7 +230,6 @@ async function getExamInfo(req, res, next) {
         exam: ind.exam,
       };
     });
-    
 
     if (!req.data[0]) {
       return res.status(404).send({
