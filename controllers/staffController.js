@@ -7,6 +7,7 @@ const Student = require("../schemas/studentSchema");
 const { School } = require("../schemas/schoolSchema");
 const Staff = require("../schemas/staffSchema");
 const Exam = require("../schemas/examSchema");
+const { SectionNew } = require("../schemas/courseSchema");
 
 const createGallery = async (req, res, next) => {
   try {
@@ -455,13 +456,10 @@ async function updateExamMarks(req, res, next) {
     const { schoolCode } = req.params;
     const mainData = req.body;
 
-    const examInfo = await Exam.findOne({ schoolCode });
-    const selectedSubject = examInfo.exam
-      .find((ind) => ind._id.toString() === mainData.course)
-      .course.term[mainData.term].section.find(
-        (sec) => sec._id.toString() === mainData.section
-      )
-      .subjects.find((sub) => sub._id.toString() === mainData.subject);
+    const section = await SectionNew.findOne({
+      schoolCode,
+      _id: mainData.section,
+    });
 
     if (
       req.staff.role !== "Administrator" &&
@@ -474,24 +472,14 @@ async function updateExamMarks(req, res, next) {
 
     await Exam.findOneAndUpdate(
       {
-        schoolCode,
-        "exam._id": mainData.course,
-        [`exam.course.term.${mainData.term}.section._id`]: mainData.section,
-        [`exam.course.term.${mainData.term}.section.subjects._id`]:
-          mainData.subject,
+        schoolCode: schoolCode,
+        _id: section.exam,
+        [`term.${mainData.term}.subjects._id`]: mainData.data._id,
       },
       {
         $set: {
-          [`exam.$.course.term.${mainData.term}.section.$[section].subjects.$[subject]`]:
-            mainData.data,
+          [`term.${mainData.term}.subjects.$`]: mainData.data,
         },
-      },
-      {
-        arrayFilters: [
-          { "section._id": mainData.section },
-          { "subject._id": mainData.subject },
-        ],
-        new: true,
       }
     );
 
