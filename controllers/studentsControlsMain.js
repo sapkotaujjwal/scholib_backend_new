@@ -16,6 +16,7 @@ const {
 } = require("../schemas/courseSchema");
 
 const { sendMail } = require("../config/sendEmail");
+const Exam = require("../schemas/examSchema");
 
 //delete school admission
 const deleteAdmission = async (req, res, next) => {
@@ -55,6 +56,58 @@ async function getStudentFromCourse(req, res, next) {
     }
 
     req.student = student;
+    next();
+  } catch (e) {
+    return res.status(500).send({
+      success: false,
+      status: "Get Student Failed",
+      message: e.message,
+    });
+  }
+}
+
+// get student exam info
+async function getStudentExamInfo(req, res, next) {
+  try {
+    const { _id, schoolCode } = req.params;
+
+    let school;
+    school = await School.findOne(
+      { schoolCode, "students._id": _id },
+      { "students.$": 1 }
+    );
+
+    const sectionId = school.students[0].course.section;
+
+    const exam = await SectionNew.findOne({
+      _id: sectionId,
+      schoolCode,
+    }).select("exam");
+
+    const examId = exam.exam;
+
+    const result = await Exam.findOne({ _id: examId, schoolCode })
+      .where("term.publishedDate")
+      .exists(true)
+      .select("term")
+      .exec();
+
+    req.exam = result.term.map((t) =>
+      t.subjects.map((sub) => {
+        return {
+          _id: sub._id,
+          subject: sub.subject,
+          student: sub.students.find((std) => std.student.toString() === _id),
+
+          fullMarks: sub.fullMarks,
+          passMarks: sub.passMarks,
+
+          fullMarks2: sub.fullMarks2,
+          passMarks2: sub.passMarks2,
+        };
+      })
+    );
+
     next();
   } catch (e) {
     return res.status(500).send({
@@ -1243,4 +1296,5 @@ module.exports = {
   changeCourse,
   takeAttendance,
   deleteAdmission,
+  getStudentExamInfo,
 };

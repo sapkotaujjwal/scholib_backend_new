@@ -24,6 +24,7 @@ const {
   changeCourse,
   getAllStudentsFromCourse,
   takeAttendance,
+  getStudentExamInfo,
 } = require("../controllers/studentsControlsMain");
 
 //middlewares
@@ -309,6 +310,21 @@ router.delete(
       success: true,
       status: "Student Deleted",
       message: "Student has been deleted successfully",
+    });
+  }
+);
+
+// Get the student exam info
+router.get(
+  "/:schoolCode/student/:_id/exam",
+  verifySchoolStaff,
+  checkAdmin,
+  getStudentExamInfo,
+  (req, res) => {
+    res.status(200).send({
+      success: true,
+      status: "Exam Info Found",
+      data: req.exam
     });
   }
 );

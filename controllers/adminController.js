@@ -148,6 +148,8 @@ async function addExam(req, res, next) {
             subject: sub.subject,
             students: students,
             _id: sub._id,
+            fullMarks: 100,
+            passMarks: 40,
           };
         }),
       };
