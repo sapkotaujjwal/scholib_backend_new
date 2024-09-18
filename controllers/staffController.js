@@ -266,6 +266,8 @@ async function staffUpdate(req, res, next) {
   }
 }
 
+
+// here this one is messy i don't know what is happening here
 async function studentsAttendance(req, res, next) {
   try {
     const staff = req.staff;

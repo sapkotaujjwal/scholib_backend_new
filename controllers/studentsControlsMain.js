@@ -552,7 +552,7 @@ async function takeAttendance(req, res, next) {
   try {
     const { classId, sectionId } = req.query;
     const absentStudents = JSON.parse(req.query.absentStudents);
-    const schoolCode = req.staff.schoolCode;
+    const { schoolCode } = req.params;
 
     if (!sectionId || !classId || !absentStudents || !schoolCode) {
       return res.status(400).send({
@@ -579,7 +579,6 @@ async function takeAttendance(req, res, next) {
     }
 
     const students = section.students;
-
     // Process each student
     await Promise.all(
       students.map(async (student) => {
@@ -618,6 +617,23 @@ async function takeAttendance(req, res, next) {
         await student.save();
       })
     );
+
+    const sectionInfo = await SectionNew.findOne({
+      _id: sectionId,
+      schoolCode,
+    }).select("workingDates");
+
+    // Convert each date in sectionInfo.workingDates to a string (YYYY-MM-DD) and check if today's date exists
+    const isDateInArray = sectionInfo.workingDates.some((date) => {
+      const formattedDate = date.toISOString().split("T")[0]; // Format the Mongoose Date object as YYYY-MM-DD
+      return formattedDate === today;
+    });
+
+    if (!isDateInArray) {
+      // Convert today's string to a Date object before adding
+      sectionInfo.workingDates.push(new Date(today));
+      await sectionInfo.save();
+    }
 
     next();
   } catch (e) {

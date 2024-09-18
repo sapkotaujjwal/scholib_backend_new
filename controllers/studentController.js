@@ -1,37 +1,9 @@
-// const express = require("express");
-// const app = express();
-
 const Student = require("../schemas/studentSchema");
 const Exam = require("../schemas/examSchema");
 const Course = require("../schemas/courseSchema");
-const {School} = require("../schemas/schoolSchema");
+const { School } = require("../schemas/schoolSchema");
 
-// short hand to get the student
-const findStudent = (course, classId, groupId, sectionId, _id) => {
-  const courseObj = course.course.find(
-    (first) => first._id.toString() === classId
-  );
-  if (!courseObj) return null;
-
-  const groupObj = courseObj.groups.find(
-    (second) => second._id.toString() === groupId
-  );
-  if (!groupObj) return null;
-
-  const sectionObj = groupObj.sections.find(
-    (third) => third._id.toString() === sectionId
-  );
-
-  let workingDays = sectionObj.workingDates.length;
-
-  if (!sectionObj) return null;
-
-  return ({
-    data: sectionObj.students.find((last) => last._id.toString() === _id),
-    workingDays
-  })
-  
-};
+const { StudentNew, SectionNew } = require("../schemas/courseSchema");
 
 //update student
 async function studentUpdate(req, res, next) {
@@ -147,36 +119,111 @@ async function getStudentInfoFromCourse(req, res, next) {
     const { schoolCode } = req.params;
     const _id = req.student._id.toString();
 
-    const school = await School.findOne({ schoolCode });
-    const course = await Course.findOne({ schoolCode }).select("course");
+    let school;
+    school = await School.findOne(
+      { schoolCode, "students._id": _id },
+      { "students.$": 1 }
+    );
 
-    const studentFromSchool = school.students.find(
-      (std) => std._id.toString() === _id
-    ).course;
+    const sectionId = school.students[0].course.section;
 
-    const groupId = studentFromSchool.group;
-    const sectionId = studentFromSchool.section;
-    const classId = studentFromSchool.class;
+    const workingDates = await SectionNew.findOne({
+      _id: sectionId,
+      schoolCode,
+    }).select("workingDates");
 
-    const otherData = findStudent(course, classId, groupId, sectionId, _id);
+    const exam = await SectionNew.findOne({
+      _id: sectionId,
+      schoolCode,
+    }).select("exam");
 
-    const student = otherData.data;
+    const examId = exam.exam;
 
-    if (!student) {
-      return res.status(404).send({
-        success: false,
-        status: "Student not found",
-        message: "The student you are looking for does not exists",
-      });
-    }
+    const result = await Exam.findOne({ _id: examId, schoolCode })
+      .where("term.publishedDate")
+      .exists(true)
+      .select("term")
+      .exec();
 
-    const workingDays = otherData.workingDays;
+    req.exam = result.term.map((t) =>
+      t.subjects.map((sub) => {
+        return {
+          _id: sub._id,
+          subject: sub.subject,
+          student: sub.students.find((std) => std.student.toString() === _id),
 
-    req.data = {student,workingDays};
+          fullMarks: sub.fullMarks,
+          passMarks: sub.passMarks,
+
+          fullMarks2: sub.fullMarks2,
+          passMarks2: sub.passMarks2,
+        };
+      })
+    );
+
+    const student = await StudentNew.findOne({ studentId: _id, schoolCode });
+
+    req.data = {
+      student,
+      workingDays: workingDates.workingDates,
+      exam: req.exam,
+    };
 
     next();
   } catch (e) {
     console.log(e);
+    return res.status(500).send({
+      success: false,
+      status: "Get Student Failed",
+      message: e.message,
+    });
+  }
+}
+
+// get student exam info
+async function getStudentExamInfo(req, res, next) {
+  try {
+    const { _id, schoolCode } = req.params;
+
+    let school;
+    school = await School.findOne(
+      { schoolCode, "students._id": _id },
+      { "students.$": 1 }
+    );
+
+    const sectionId = school.students[0].course.section;
+
+    const exam = await SectionNew.findOne({
+      _id: sectionId,
+      schoolCode,
+    }).select("exam");
+
+    const examId = exam.exam;
+
+    const result = await Exam.findOne({ _id: examId, schoolCode })
+      .where("term.publishedDate")
+      .exists(true)
+      .select("term")
+      .exec();
+
+    req.exam = result.term.map((t) =>
+      t.subjects.map((sub) => {
+        return {
+          _id: sub._id,
+          subject: sub.subject,
+          student: sub.students.find((std) => std.student.toString() === _id),
+
+          fullMarks: sub.fullMarks,
+          passMarks: sub.passMarks,
+
+          fullMarks2: sub.fullMarks2,
+          passMarks2: sub.passMarks2,
+        };
+      })
+    );
+
+    next();
+  } catch (e) {
     return res.status(500).send({
       success: false,
       status: "Get Student Failed",
