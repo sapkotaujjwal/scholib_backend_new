@@ -1313,53 +1313,119 @@ const startNewSession = async (req, res, next) => {
       }
 
       if (!crc.next) {
-        tempCourse.map(async (crc2, index) => {
-          if (crc2.courseId.toString() === crc._id.toString()) {
-            function extractStudents(a) {
-              let studentsArray = a.groups.flatMap((grp) =>
-                grp.sections.flatMap((sec) =>
-                  sec.students.map((std) => std.studentId)
+        await Promise.all(
+          tempCourse.map(async (crc2, index) => {
+            if (crc2.courseId.toString() === crc._id.toString()) {
+              function extractStudents(a) {
+                let studentsArray = a.groups.flatMap((grp) =>
+                  grp.sections.flatMap((sec) =>
+                    sec.students.map((std) => std.studentId)
+                  )
+                );
+
+                return studentsArray;
+              }
+
+              const allStudents = extractStudents(tempCourse[index]);
+
+              const studentsToDelete = school.students.filter((stu) =>
+                allStudents.some(
+                  (stu2) => stu2.toString() === stu._id.toString()
                 )
               );
 
-              return studentsArray;
-            }
-
-            const allStudents = extractStudents(tempCourse[index]);
-
-            const studentsToDelete = school.students.filter((stu) =>
-              allStudents.some((stu2) => stu2.toString() === stu._id.toString())
-            );
-
-            // Push the deleted student to OlderData
-            const olderData = await OlderData.findOneAndUpdate(
-              { schoolCode, year },
-              {
-                $push: {
-                  students: { $each: studentsToDelete }, // here studentsToDelete is an array
-                  courses: crc2._id, // Directly push the single course ID
+              // Push the deleted student to OlderData
+              const olderData = await OlderData.findOneAndUpdate(
+                { schoolCode, year },
+                {
+                  $push: {
+                    students: { $each: studentsToDelete }, // here studentsToDelete is an array
+                    courses: crc2._id, // Directly push the single course ID
+                  },
                 },
-              },
-              { new: true, upsert: true }
-            );
+                { new: true, upsert: true }
+              );
 
-            // Add olderData ID to School if new
-            if (olderData && olderData.isNew) {
-              school.olderData.unshift(olderData._id);
-            }
+              // Add olderData ID to School if new
+              if (olderData && olderData.isNew) {
+                school.olderData.unshift(olderData._id);
+              }
 
-            school.students = school.students.filter(
-              (stu) =>
-                !allStudents.some(
-                  (stu2) => stu2.toString() === stu._id.toString()
+              // Remove the students from school.students
+              school.students = school.students.filter(
+                (stu) =>
+                  !allStudents.some(
+                    (stu2) => stu2.toString() === stu._id.toString()
+                  )
+              );
+
+              // Remove the course from school.course2
+              school.course2 = school.course2.filter(
+                (el) => el._id.toString() !== crc2._id.toString()
+              );
+
+              // Create sections and save them
+              const sections = await Promise.all(
+                crc.groups.map(async (group) =>
+                  Promise.all(
+                    group.sections.map(async (section) => {
+                      // Create Exam First
+                      const newExam = new Exam({
+                        schoolCode,
+                        term: [],
+                      });
+                      await newExam.save();
+
+                      // Create Exam
+                      const newSection = new SectionNew({
+                        name: section.name,
+                        exam: newExam._id,
+                        schoolCode,
+                        sectionId: section._id.toString(),
+                        subjects: section.subjects.map((subject) => ({
+                          subject: subject.subject,
+                          teacher: subject.teacher._id,
+                        })),
+                      });
+                      await newSection.save();
+                      return newSection._id;
+                    })
+                  )
                 )
-            );
+              );
 
-            school.course2 = school.course2.filter(
-              (el) => el.toString() !== crc2._id.toString()
-            );
-          }
-        });
+              // Create groups and save them
+              const groups = await Promise.all(
+                crc.groups.map(async (group, index) => {
+                  const newGroup = new GroupNew({
+                    schoolCode,
+                    name: group.name,
+                    subjects: group.subjects,
+                    sections: sections[index],
+                    groupId: group._id.toString(),
+                  });
+                  await newGroup.save();
+                  return newGroup._id;
+                })
+              );
+
+              // Create course and save it
+              const newCourse = new CourseNew({
+                schoolCode,
+                class: crc.class,
+                seatsAvailable: crc.seatsAvailable,
+                subjects: crc.subjects,
+                groups: groups,
+                fees: crc.fees,
+                next: crc.next,
+                courseId: crc._id.toString(),
+              });
+
+              let savedCourse = await newCourse.save();
+              school.course2.push(savedCourse._id);
+            }
+          })
+        );
       }
     }
 
