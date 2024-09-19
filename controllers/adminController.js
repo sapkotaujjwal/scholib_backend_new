@@ -1256,14 +1256,19 @@ const startNewSession = async (req, res, next) => {
                   (std2) => std2._id.toString() === std._id.toString()
                 );
 
-                std.absentdays = [];
-                std.discount = [];
-                std.fine = [];
-                std.paymentHistory = [];
-                std.library = correspondingStudent.library.filter(
-                  (lib) => !lib.returnedDate
-                );
-                std.bus = [];
+
+
+
+               let std = {
+                courseId: "",
+                absentDays: [],
+                discount: [],
+                fine: [],
+                previousLeft: 200,
+                paymentHistory: [],
+                library: [],
+                bus: []
+              };
 
                 if (
                   correspondingStudent.bus.length === 0 ||

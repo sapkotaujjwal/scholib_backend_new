@@ -86,9 +86,12 @@ async function getStudentExamInfo(req, res, next) {
 
     const examId = exam.exam;
 
+    console.log(examId);
+
+    // This one is for the school admin so we are not checking whether the result is published or not 
     const result = await Exam.findOne({ _id: examId, schoolCode })
-      .where("term.publishedDate")
-      .exists(true)
+      // .where("term.publishedDate")
+      // .exists(true)
       .select("term")
       .exec();
 
