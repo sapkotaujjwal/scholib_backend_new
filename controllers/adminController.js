@@ -1223,97 +1223,178 @@ const startNewSession = async (req, res, next) => {
           )
         );
 
+        let thatClass = tempCourse.find(
+          (crc2) => crc2.courseId.toString() === crcIdStr
+        );
+
         if (nextClass) {
-          nextClass.startDate = getDate().fullDate;
-          for (const group1 of tempCourse.find(
-            (ccc) => ccc._id.toString() === crc._id.toString()
-          ).groups) {
-            const correspondingGroup = nextClass.groups.find(
-              (group2) =>
-                group2.name.toUpperCase() === group1.name.toUpperCase()
+          // create next class and save in school and remove the old one
+          {
+            // Create sections and save them
+            const sections = await Promise.all(
+              nextClass.groups.map(async (group) =>
+                Promise.all(
+                  group.sections.map(async (section) => {
+                    // Create Exam First
+                    const newExam = new Exam({
+                      schoolCode,
+                      term: [],
+                    });
+                    await newExam.save();
+
+                    const thatSectionStudents = thatClass.groups.reduce(
+                      (accumulator, group) => {
+                        const matchingSection = group.sections.find(
+                          (section) => section.name === section.name
+                        );
+
+                        // Handle the case where no matching section is found:
+                        if (!matchingSection) {
+                          return accumulator; // Return accumulator as-is
+                        }
+
+                        // Efficiently extract student IDs using spread syntax:
+                        return [
+                          ...accumulator,
+                          ...matchingSection.students.map(
+                            (student) => student._id
+                          ),
+                        ];
+                      },
+                      []
+                    );
+
+                    // Create Section
+                    const newSection = new SectionNew({
+                      name: section.name,
+                      exam: newExam._id,
+                      schoolCode,
+                      students: thatSectionStudents,
+                      sectionId: section._id.toString(),
+                      subjects: section.subjects.map((subject) => ({
+                        subject: subject.subject,
+                        teacher: subject.teacher._id,
+                      })),
+                    });
+                    await newSection.save();
+                    return newSection._id;
+                  })
+                )
+              )
             );
 
-            if (!correspondingGroup) {
-              throw new Error(
-                "Unable to perform the operation !! corresponding group name mismatched"
-              );
-            }
+            // Create groups and save them
+            const groups = await Promise.all(
+              nextClass.groups.map(async (group, index) => {
+                const newGroup = new GroupNew({
+                  schoolCode,
+                  name: group.name,
+                  subjects: group.subjects,
+                  sections: sections[index],
+                  groupId: group._id.toString(),
+                });
+                await newGroup.save();
+                return newGroup._id;
+              })
+            );
 
+            // Create course and save it
+            const newCourse = new CourseNew({
+              schoolCode,
+              class: nextClass.class,
+              seatsAvailable: nextClass.seatsAvailable,
+              subjects: nextClass.subjects,
+              groups: groups,
+              fees: nextClass.fees,
+              next: nextClass.next,
+              courseId: nextClass._id.toString(),
+            });
+
+            let savedCourse = await newCourse.save();
+            school.course2.push(savedCourse._id);
+
+            // Remove the course from school.course2 this class
+            school.course2 = school.course2.filter(
+              (el) => el._id.toString() !== thatClass._id.toString()
+            );
+          }
+
+          for (const group1 of thatClass.groups) {
             for (const section1 of group1.sections) {
-              const correspondingSection = correspondingGroup.sections.find(
-                (section2) =>
-                  section2.name.toUpperCase() === section1.name.toUpperCase()
-              );
-
-              if (!correspondingSection) {
-                throw new Error(
-                  "Unable to perform the operation !! corresponding section name mismatched"
-                );
-              }
-
-              correspondingSection.students = section1.students.map((std) => {
+              section1.students.map((std) => {
                 const correspondingStudent = section1.students.find(
                   (std2) => std2._id.toString() === std._id.toString()
                 );
 
-
-
-
-               let std = {
-                courseId: "",
-                absentDays: [],
-                discount: [],
-                fine: [],
-                previousLeft: 200,
-                paymentHistory: [],
-                library: [],
-                bus: []
-              };
-
-                if (
-                  correspondingStudent.bus.length === 0 ||
-                  !correspondingStudent.bus[0]?.end
-                ) {
-                  std.bus.unshift({
-                    place: correspondingStudent.bus[0]?.place,
-                    start: getDate().fullDate,
-                  });
-                }
-
-                std.previousLeft = calculateStudentFee(
-                  nextClass.fees,
-                  school.busFee,
-                  correspondingStudent,
-                  nextClass.startDate
-                );
-
-                const studentInSchool = school.students.find(
-                  (student) => student._id.toString() === std._id.toString()
-                );
-                if (studentInSchool) {
-                  studentInSchool.course = {
-                    class: nextClass._id,
-                    group: correspondingGroup._id,
-                    section: correspondingSection._id,
+                // this part is for promiting part and also calculation and so on..
+                {
+                  let newSession = {
+                    courseId: "",
+                    absentDays: [],
+                    discount: [],
+                    fine: [],
+                    previousLeft: 200,
+                    paymentHistory: [],
+                    library: [],
+                    bus: [],
                   };
+
+                  if (
+                    correspondingStudent.session[0].bus.length === 0 ||
+                    !correspondingStudent.session[0].bus[0]?.end
+                  ) {
+                    newSession.bus.unshift({
+                      place: correspondingStudent.bus[0]?.place,
+                      start: getDate().fullDate,
+                    });
+                  }
+
+                  newSession.previousLeft = calculateStudentFee(
+                    nextClass.fees,
+                    school.busFee,
+                    correspondingStudent.session[0],
+                    nextClass.startDate
+                  );
+
+                  correspondingStudent.push(newSession);
+
+                  const studentInSchool = school.students.find(
+                    (student) => student._id.toString() === std._id.toString()
+                  );
+                  if (studentInSchool) {
+                    studentInSchool.course = {
+                      class: correspondingClass._id,
+                      group: correspondingGroup._id,
+                      section: correspondingSection._id,
+                    };
+                  }
                 }
 
-                return std;
+                return std._id;
               });
             }
           }
 
-          course.course.find((ctr, index) => {
-            if (ctr._id.toString() === nextClass._id.toString()) {
-              course.course[index] = nextClass;
-            }
-          });
+          // adding students and course in the older data
 
-          course.course.find((ctr, index) => {
-            if (ctr._id.toString() === crc._id.toString()) {
-              course.course[index] = crc;
-            }
-          });
+          let studentsToDelete = [];
+
+          // Push the deleted student to OlderData
+          const olderData = await OlderData.findOneAndUpdate(
+            { schoolCode, year },
+            {
+              $push: {
+                students: { $each: studentsToDelete }, // here studentsToDelete is an array
+                courses: thatClass._id, // Directly push the single course ID
+              },
+            },
+            { new: true, upsert: true }
+          );
+
+          // Add olderData ID to School if new
+          if (olderData && olderData.isNew) {
+            school.olderData.unshift(olderData._id);
+          }
         }
       }
 
@@ -1433,6 +1514,8 @@ const startNewSession = async (req, res, next) => {
         );
       }
     }
+
+    throw new Error("This feature is being updated will be availabe soon..");
 
     await school.save();
     next();
