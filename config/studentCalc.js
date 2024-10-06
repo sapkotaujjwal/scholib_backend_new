@@ -1,6 +1,8 @@
 const { getDate } = require("./nepaliDate");
 
 function calculateStudentFee(a, b, c, d) {
+
+
   function findCourseFee(a1, b1) {
     let totalAmt = 0;
 
@@ -15,6 +17,10 @@ function calculateStudentFee(a, b, c, d) {
     b1.discount.forEach((elem) => {
       totalAmt = totalAmt - elem.amount;
     });
+
+    b1.paymentHistory.forEach((elem)=>{
+      totalAmt = totalAmt - elem.amount;
+    })
 
     return totalAmt;
   }

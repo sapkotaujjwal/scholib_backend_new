@@ -8,7 +8,7 @@ const { getDate } = require("../config/nepaliDate");
 const { calculateStudentFee } = require("../config/studentCalc");
 const Exam = require("../schemas/examSchema");
 const { sendMail } = require("../config/sendEmail");
-const { CourseNew, GroupNew, SectionNew } = require("../schemas/courseSchema");
+const { CourseNew, GroupNew, SectionNew, StudentNew } = require("../schemas/courseSchema");
 
 // Create a new course and save it in school schema
 const createCourse2 = async (req, res, next) => {
@@ -1146,6 +1146,7 @@ const startNewSession = async (req, res, next) => {
     for (const crc of school.course) {
       const crcIdStr = crc._id.toString();
 
+      // First time session is going to be started
       if (
         classesList.includes(crcIdStr) &&
         !tempCourse.find((crc2) => crc2.courseId.toString() === crcIdStr)
@@ -1214,6 +1215,7 @@ const startNewSession = async (req, res, next) => {
         continue;
       }
 
+      // Students need to be promoted to next class eg: 9
       if (crc.next) {
         let nextClass = JSON.parse(
           JSON.stringify(
@@ -1229,82 +1231,61 @@ const startNewSession = async (req, res, next) => {
 
         if (nextClass) {
           // create next class and save in school and remove the old one
+          let sections;
+          let groups;
+          let newCourse;
           {
             // Create sections and save them
-            const sections = await Promise.all(
-              nextClass.groups.map(async (group) =>
-                Promise.all(
-                  group.sections.map(async (section) => {
-                    // Create Exam First
-                    const newExam = new Exam({
-                      schoolCode,
-                      term: [],
-                    });
-                    await newExam.save();
+            sections = await Promise.all(
+              nextClass.groups.flatMap((group) =>
+                group.sections.map(async (section) => {
+                  // Create Exam First
+                  const newExam = new Exam({
+                    schoolCode,
+                    term: [],
+                  });
+                  await newExam.save();
 
-                    const thatSectionStudents = thatClass.groups.reduce(
-                      (accumulator, group) => {
-                        const matchingSection = group.sections.find(
-                          (section) => section.name === section.name
-                        );
-
-                        // Handle the case where no matching section is found:
-                        if (!matchingSection) {
-                          return accumulator; // Return accumulator as-is
-                        }
-
-                        // Efficiently extract student IDs using spread syntax:
-                        return [
-                          ...accumulator,
-                          ...matchingSection.students.map(
-                            (student) => student._id
-                          ),
-                        ];
-                      },
-                      []
-                    );
-
-                    // Create Section
-                    const newSection = new SectionNew({
-                      name: section.name,
-                      exam: newExam._id,
-                      schoolCode,
-                      students: thatSectionStudents,
-                      sectionId: section._id.toString(),
-                      subjects: section.subjects.map((subject) => ({
-                        subject: subject.subject,
-                        teacher: subject.teacher._id,
-                      })),
-                    });
-                    await newSection.save();
-                    return newSection._id;
-                  })
-                )
+                  // Create Section
+                  const newSection = new SectionNew({
+                    name: section.name,
+                    exam: newExam._id,
+                    schoolCode,
+                    students: [],
+                    sectionId: section._id.toString(),
+                    subjects: section.subjects.map((subject) => ({
+                      subject: subject.subject,
+                      teacher: subject.teacher._id,
+                    })),
+                  });
+                  await newSection.save();
+                  return newSection;
+                })
               )
             );
 
             // Create groups and save them
-            const groups = await Promise.all(
+            groups = await Promise.all(
               nextClass.groups.map(async (group, index) => {
                 const newGroup = new GroupNew({
                   schoolCode,
                   name: group.name,
                   subjects: group.subjects,
-                  sections: sections[index],
+                  sections: sections[index]._id,
                   groupId: group._id.toString(),
                 });
                 await newGroup.save();
-                return newGroup._id;
+                return newGroup;
               })
             );
 
             // Create course and save it
-            const newCourse = new CourseNew({
+            newCourse = new CourseNew({
               schoolCode,
               class: nextClass.class,
               seatsAvailable: nextClass.seatsAvailable,
               subjects: nextClass.subjects,
-              groups: groups,
+              groups: groups.map((grp) => grp._id),
               fees: nextClass.fees,
               next: nextClass.next,
               courseId: nextClass._id.toString(),
@@ -1321,15 +1302,13 @@ const startNewSession = async (req, res, next) => {
 
           for (const group1 of thatClass.groups) {
             for (const section1 of group1.sections) {
-              section1.students.map((std) => {
-                const correspondingStudent = section1.students.find(
-                  (std2) => std2._id.toString() === std._id.toString()
-                );
+              const studnetsOfThatSection = section1.students.map((std) => {
+                const correspondingStudent = std;
 
                 // this part is for promiting part and also calculation and so on..
                 {
                   let newSession = {
-                    courseId: "",
+                    courseId: newCourse._id,
                     absentDays: [],
                     discount: [],
                     fine: [],
@@ -1340,7 +1319,7 @@ const startNewSession = async (req, res, next) => {
                   };
 
                   if (
-                    correspondingStudent.session[0].bus.length === 0 ||
+                    correspondingStudent.session[0].bus.length > 0 &&
                     !correspondingStudent.session[0].bus[0]?.end
                   ) {
                     newSession.bus.unshift({
@@ -1350,33 +1329,63 @@ const startNewSession = async (req, res, next) => {
                   }
 
                   newSession.previousLeft = calculateStudentFee(
-                    nextClass.fees,
+                    thatClass.fees,
                     school.busFee,
                     correspondingStudent.session[0],
-                    nextClass.startDate
+                    thatClass.startDate
                   );
 
-                  correspondingStudent.push(newSession);
+                  correspondingStudent.session.unshift(newSession);
 
                   const studentInSchool = school.students.find(
                     (student) => student._id.toString() === std._id.toString()
                   );
+
                   if (studentInSchool) {
                     studentInSchool.course = {
-                      class: correspondingClass._id,
-                      group: correspondingGroup._id,
-                      section: correspondingSection._id,
+                      class: newCourse._id,
+                      group: groups.find((grp) => grp.name === group1.name)._id,
+                      section: sections.find(
+                        (sec) => sec.name === section1.name
+                      )._id,
                     };
                   }
                 }
 
-                return std._id;
+                return correspondingStudent;
               });
+
+              await Promise.all(
+                studnetsOfThatSection.map(async (std) => {
+
+                  // console.log(std.session);
+                  // throw new Error("dsbdj");
+
+
+                  await StudentNew.findOneAndUpdate(
+                    { schoolCode, _id: std._id },
+                    {
+                      $set: {
+                        session: std.session,
+                      },
+                    }
+                  );
+                })
+              );
+
+              // Update the section by _id and set the students array
+              await SectionNew.findByIdAndUpdate(
+                sections.find((sec) => sec.name === section1.name)._id,
+                {
+                  $set: {
+                    students: studnetsOfThatSection.map((ind) => ind._id),
+                  },
+                }
+              );
             }
           }
 
           // adding students and course in the older data
-
           let studentsToDelete = [];
 
           // Push the deleted student to OlderData
@@ -1398,6 +1407,7 @@ const startNewSession = async (req, res, next) => {
         }
       }
 
+      // if that is the last class and now students are no longer in that chain eg: 10
       if (!crc.next) {
         await Promise.all(
           tempCourse.map(async (crc2, index) => {
@@ -1513,9 +1523,77 @@ const startNewSession = async (req, res, next) => {
           })
         );
       }
+
+      // if that is the first class eg: Nursery
+      if (
+        !school.course.find((abc) => abc.next === crc._id) &&
+        tempCourse.find((crc2) => crc2.courseId.toString() === crcIdStr)
+      ) {
+        {
+          // Create sections and save them
+          const sections = await Promise.all(
+            crc.groups.map(async (group) =>
+              Promise.all(
+                group.sections.map(async (section) => {
+                  // Create Exam First
+                  const newExam = new Exam({
+                    schoolCode,
+                    term: [],
+                  });
+                  await newExam.save();
+
+                  // Create Exam
+                  const newSection = new SectionNew({
+                    name: section.name,
+                    exam: newExam._id,
+                    schoolCode,
+                    sectionId: section._id.toString(),
+                    subjects: section.subjects.map((subject) => ({
+                      subject: subject.subject,
+                      teacher: subject.teacher._id,
+                    })),
+                  });
+                  await newSection.save();
+                  return newSection._id;
+                })
+              )
+            )
+          );
+
+          // Create groups and save them
+          const groups = await Promise.all(
+            crc.groups.map(async (group, index) => {
+              const newGroup = new GroupNew({
+                schoolCode,
+                name: group.name,
+                subjects: group.subjects,
+                sections: sections[index],
+                groupId: group._id.toString(),
+              });
+              await newGroup.save();
+              return newGroup._id;
+            })
+          );
+
+          // Create course and save it
+          const newCourse = new CourseNew({
+            schoolCode,
+            class: crc.class,
+            seatsAvailable: crc.seatsAvailable,
+            subjects: crc.subjects,
+            groups: groups,
+            fees: crc.fees,
+            next: crc.next,
+            courseId: crc._id.toString(),
+          });
+
+          let savedCourse = await newCourse.save();
+          school.course2.push(savedCourse._id);
+        }
+      }
     }
 
-    throw new Error("This feature is being updated will be availabe soon..");
+    // throw new Error("This feature is being updated will be availabe soon..");
 
     await school.save();
     next();

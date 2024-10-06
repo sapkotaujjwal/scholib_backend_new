@@ -1,7 +1,5 @@
 const mongoose = require('mongoose')
 
-// this will connect to the local system database
-
 const connectDb = async (dburi) =>{
 try{
     await mongoose.connect(`${dburi}/scholibNew`,{
@@ -18,18 +16,33 @@ console.log('mongodb failed to connect')
 }
 
 
-// this will connect to atlas database 
-
-// const connectDb = async (dburi) =>{
-//     try{
-//         await mongoose.connect("mongodb+srv://ujjwal:nsptxi0EoSXU2HeH@cluster0.gqecxkc.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
-//         console.log('mongodb connected successfully')
-    
-//     }
-//     catch (error){
-//     console.log(error)
-//     console.log('mongodb failed to connect')
-//     }
-//     }
-
 module.exports = connectDb;
+
+
+
+
+
+
+
+// const mongoose = require('mongoose');
+
+// const connectDb = async (dburi = "mongodb://13.127.88.43:27017", username='adminUsername', password='password123') => {
+//     try {
+//         // Construct the full MongoDB URI with username and password
+//         const uri = `${dburi}/scholibNew?authSource=admin`;
+        
+//         await mongoose.connect(uri, {
+//             user: username,
+//             pass: password,
+//             useNewUrlParser: true,
+//             useUnifiedTopology: true,
+//         });
+//         console.log('MongoDB connected successfully');
+//     } catch (error) {
+//         console.log(error);
+//         console.log('MongoDB failed to connect');
+//     }
+// };
+
+// module.exports = connectDb;
+

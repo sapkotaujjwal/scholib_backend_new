@@ -145,21 +145,25 @@ async function getStudentInfoFromCourse(req, res, next) {
       .select("term")
       .exec();
 
-    req.exam = result.term.map((t) =>
-      t.subjects.map((sub) => {
-        return {
-          _id: sub._id,
-          subject: sub.subject,
-          student: sub.students.find((std) => std.student.toString() === _id),
+    if (result) {
+      req.exam = result.term.map((t) =>
+        t.subjects.map((sub) => {
+          return {
+            _id: sub._id,
+            subject: sub.subject,
+            student: sub.students.find((std) => std.student.toString() === _id),
 
-          fullMarks: sub.fullMarks,
-          passMarks: sub.passMarks,
+            fullMarks: sub.fullMarks,
+            passMarks: sub.passMarks,
 
-          fullMarks2: sub.fullMarks2,
-          passMarks2: sub.passMarks2,
-        };
-      })
-    );
+            fullMarks2: sub.fullMarks2,
+            passMarks2: sub.passMarks2,
+          };
+        })
+      );
+    } else {
+      req.exam = [];
+    }
 
     const student = await StudentNew.findOne({ studentId: _id, schoolCode });
 
