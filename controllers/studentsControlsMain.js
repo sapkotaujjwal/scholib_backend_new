@@ -86,9 +86,7 @@ async function getStudentExamInfo(req, res, next) {
 
     const examId = exam.exam;
 
-    console.log(examId);
-
-    // This one is for the school admin so we are not checking whether the result is published or not 
+    // This one is for the school admin so we are not checking whether the result is published or not
     const result = await Exam.findOne({ _id: examId, schoolCode })
       // .where("term.publishedDate")
       // .exists(true)
@@ -213,14 +211,30 @@ async function startBusService(req, res, next) {
     const classId = req.query.classId;
     const location = req.query.location;
 
-    // Define the update operation
-
-    const updateResult = await StudentNew.updateOne(
+    const student = await StudentNew.findOne(
       {
         studentId: _id,
         schoolCode,
         "session.courseId": classId,
-        "session.bus.0.end": { $exists: true }, // Check if bus service is already active
+      },
+      { "session.$": 1 }
+    );
+
+    if (!student) {
+      throw new Error("Student not found or session does not exist");
+    }
+
+    // Check if bus service is already active (bus.0.end exists)
+    const session = student.session[0];
+    if (session.bus.length > 0 && session.bus[0].end) {
+      throw new Error("Bus service already active for this session");
+    }
+
+    await StudentNew.updateOne(
+      {
+        studentId: _id,
+        schoolCode,
+        "session.courseId": classId,
       },
       {
         $push: {
@@ -231,11 +245,6 @@ async function startBusService(req, res, next) {
         },
       }
     );
-
-    // Check if the update operation modified any documents
-    if (updateResult.matchedCount === 0) {
-      throw new Error("Something went wrong");
-    }
 
     next();
   } catch (e) {
