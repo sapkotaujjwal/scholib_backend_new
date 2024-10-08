@@ -551,6 +551,7 @@ const schoolSchema = new mongoose.Schema({
         type: Number,
         min: 0,
         max: 4,
+        default: 0,
       },
     },
   ],
