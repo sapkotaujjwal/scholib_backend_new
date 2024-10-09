@@ -8,7 +8,12 @@ const { getDate } = require("../config/nepaliDate");
 const { calculateStudentFee } = require("../config/studentCalc");
 const Exam = require("../schemas/examSchema");
 const { sendMail } = require("../config/sendEmail");
-const { CourseNew, GroupNew, SectionNew, StudentNew } = require("../schemas/courseSchema");
+const {
+  CourseNew,
+  GroupNew,
+  SectionNew,
+  StudentNew,
+} = require("../schemas/courseSchema");
 
 // Create a new course and save it in school schema
 const createCourse2 = async (req, res, next) => {
@@ -1291,6 +1296,8 @@ const startNewSession = async (req, res, next) => {
               courseId: nextClass._id.toString(),
             });
 
+            console.log('Once done')
+
             let savedCourse = await newCourse.save();
             school.course2.push(savedCourse._id);
 
@@ -1323,10 +1330,15 @@ const startNewSession = async (req, res, next) => {
                     !correspondingStudent.session[0].bus[0]?.end
                   ) {
                     newSession.bus.unshift({
-                      place: correspondingStudent.bus[0]?.place,
+                      place: correspondingStudent.session[0].bus[0]?.place,
                       start: getDate().fullDate,
                     });
                   }
+
+                  newSession.library =
+                    correspondingStudent.session[0].library.filter(
+                      (lib) => !lib.returnedDate
+                    );
 
                   newSession.previousLeft = calculateStudentFee(
                     thatClass.fees,
@@ -1358,18 +1370,13 @@ const startNewSession = async (req, res, next) => {
               await Promise.all(
                 studnetsOfThatSection.map(async (std) => {
 
-                  // console.log(std.session);
-                  // throw new Error("dsbdj");
-
-
                   await StudentNew.findOneAndUpdate(
-                    { schoolCode, _id: std._id },
+                    { studentId: std._id, schoolCode },
                     {
-                      $set: {
-                        session: std.session,
-                      },
+                      $push: { session: std.session[0] },
                     }
                   );
+                  
                 })
               );
 
@@ -1460,75 +1467,25 @@ const startNewSession = async (req, res, next) => {
                 (el) => el._id.toString() !== crc2._id.toString()
               );
 
-              // Create sections and save them
-              const sections = await Promise.all(
-                crc.groups.map(async (group) =>
-                  Promise.all(
-                    group.sections.map(async (section) => {
-                      // Create Exam First
-                      const newExam = new Exam({
-                        schoolCode,
-                        term: [],
-                      });
-                      await newExam.save();
-
-                      // Create Exam
-                      const newSection = new SectionNew({
-                        name: section.name,
-                        exam: newExam._id,
-                        schoolCode,
-                        sectionId: section._id.toString(),
-                        subjects: section.subjects.map((subject) => ({
-                          subject: subject.subject,
-                          teacher: subject.teacher._id,
-                        })),
-                      });
-                      await newSection.save();
-                      return newSection._id;
-                    })
-                  )
-                )
-              );
-
-              // Create groups and save them
-              const groups = await Promise.all(
-                crc.groups.map(async (group, index) => {
-                  const newGroup = new GroupNew({
-                    schoolCode,
-                    name: group.name,
-                    subjects: group.subjects,
-                    sections: sections[index],
-                    groupId: group._id.toString(),
-                  });
-                  await newGroup.save();
-                  return newGroup._id;
-                })
-              );
-
-              // Create course and save it
-              const newCourse = new CourseNew({
-                schoolCode,
-                class: crc.class,
-                seatsAvailable: crc.seatsAvailable,
-                subjects: crc.subjects,
-                groups: groups,
-                fees: crc.fees,
-                next: crc.next,
-                courseId: crc._id.toString(),
-              });
-
-              let savedCourse = await newCourse.save();
-              school.course2.push(savedCourse._id);
             }
           })
         );
       }
 
       // if that is the first class eg: Nursery
+
       if (
-        !school.course.find((abc) => abc.next === crc._id) &&
+        !school.course.find((abc) => 
+          abc.next && abc.next.toString() === crc._id.toString()
+        )
+         &&
         tempCourse.find((crc2) => crc2.courseId.toString() === crcIdStr)
       ) {
+
+
+        console.log('I actually entrer here');
+
+
         {
           // Create sections and save them
           const sections = await Promise.all(
@@ -1591,6 +1548,8 @@ const startNewSession = async (req, res, next) => {
           school.course2.push(savedCourse._id);
         }
       }
+
+
     }
 
     // throw new Error("This feature is being updated will be availabe soon..");
