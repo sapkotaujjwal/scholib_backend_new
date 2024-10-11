@@ -44,8 +44,8 @@ const adminStudentRoute = require("./routes/adminForStudentRoute");
 
 // Database Connection
 
-connectDb(process.env.DB_URI);
-// connectDb();
+// connectDb(process.env.DB_URI);
+connectDb();
 
 // Routes Usage
 app.use("/mutual", mutualRoute);
