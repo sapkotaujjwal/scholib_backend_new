@@ -9,35 +9,21 @@ const accountSchema = new mongoose.Schema({
     maxlength: 6,
     immutable: true,
   },
+  year: {
+    type: Number,
+    default: getDate().year,
+  },
   paymentHistory: [
     {
-      date: {
-        type: Number,
-        default: function () {
-          const date = getDate();
-          return date.fullDate;
-        },
-      },
-      amount: {
-        type: Number,
-        required: true,
-      },
-      approvedBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Staff",
-      },
-      method: {
-        type: String,
-        required: true,
-        enum: ["cash", "scholib"],
-        default: "cash",
-      },
-      time: {
-        type: String,
-      },
+      date: Date,
+      time: String,
+      amount: Number,
+      approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
+      method: { type: String, enum: ["Cash", "Scholib"] },
+      remark: { type: String, maxlength: 1000 },
       student: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Student",
+        ref: "StudentNew",
       },
     },
   ],

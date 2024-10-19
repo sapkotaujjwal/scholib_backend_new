@@ -14,6 +14,7 @@ const {
   SectionNew,
   StudentNew,
 } = require("../schemas/courseSchema");
+const Account = require("../schemas/accountSchema");
 
 // Create a new course and save it in school schema
 const createCourse2 = async (req, res, next) => {
@@ -1296,8 +1297,6 @@ const startNewSession = async (req, res, next) => {
               courseId: nextClass._id.toString(),
             });
 
-            console.log('Once done')
-
             let savedCourse = await newCourse.save();
             school.course2.push(savedCourse._id);
 
@@ -1369,14 +1368,12 @@ const startNewSession = async (req, res, next) => {
 
               await Promise.all(
                 studnetsOfThatSection.map(async (std) => {
-
                   await StudentNew.findOneAndUpdate(
                     { studentId: std._id, schoolCode },
                     {
                       $push: { session: std.session[0] },
                     }
                   );
-                  
                 })
               );
 
@@ -1466,7 +1463,6 @@ const startNewSession = async (req, res, next) => {
               school.course2 = school.course2.filter(
                 (el) => el._id.toString() !== crc2._id.toString()
               );
-
             }
           })
         );
@@ -1475,17 +1471,11 @@ const startNewSession = async (req, res, next) => {
       // if that is the first class eg: Nursery
 
       if (
-        !school.course.find((abc) => 
-          abc.next && abc.next.toString() === crc._id.toString()
-        )
-         &&
+        !school.course.find(
+          (abc) => abc.next && abc.next.toString() === crc._id.toString()
+        ) &&
         tempCourse.find((crc2) => crc2.courseId.toString() === crcIdStr)
       ) {
-
-
-        console.log('I actually entrer here');
-
-
         {
           // Create sections and save them
           const sections = await Promise.all(
@@ -1548,8 +1538,6 @@ const startNewSession = async (req, res, next) => {
           school.course2.push(savedCourse._id);
         }
       }
-
-
     }
 
     // throw new Error("This feature is being updated will be availabe soon..");
@@ -1661,6 +1649,26 @@ async function addStaff(req, res, next) {
   }
 }
 
+// get exam info
+async function getAccountsInfo(req, res, next) {
+  try {
+    const { schoolCode } = req.params;
+    let year = req.query.year || getDate().year;
+    year = parseInt(year);
+
+    req.data = await Account.findOne({ schoolCode, year }).select("paymentHistory");
+
+    next();
+  } catch (e) {
+    console.log(e);
+    return res.status(500).send({
+      success: false,
+      status: "Exam info failed to get",
+      message: e.message,
+    });
+  }
+}
+
 module.exports = {
   updateCourse,
   updateSchool,
@@ -1688,4 +1696,5 @@ module.exports = {
   startNewSession,
   suspendStaff,
   addStaff,
+  getAccountsInfo,
 };

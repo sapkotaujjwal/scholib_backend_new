@@ -17,6 +17,7 @@ const {
 
 const { sendMail } = require("../config/sendEmail");
 const Exam = require("../schemas/examSchema");
+const Account = require("../schemas/accountSchema");
 
 //delete school admission
 const deleteAdmission = async (req, res, next) => {
@@ -306,6 +307,8 @@ async function payFees(req, res, next) {
     const amount = req.query.amount;
     const remark = req.query.remark;
 
+    const year = getDate().year;
+
     if (amount < 0) {
       throw new Error("Amount cannot be less than 0");
     }
@@ -319,6 +322,7 @@ async function payFees(req, res, next) {
       amount: amount,
       remark: remark,
       method: "Cash",
+      student: _id,
     };
 
     await StudentNew.findOneAndUpdate(
@@ -330,6 +334,17 @@ async function payFees(req, res, next) {
       {
         $push: { "session.$.paymentHistory": objToAdd },
       }
+    );
+
+    // Add the data to payment history
+    await Account.findOneAndUpdate(
+      { schoolCode, year },
+      {
+        $push: {
+          paymentHistory: objToAdd,
+        },
+      },
+      { new: true, upsert: true }
     );
 
     next();

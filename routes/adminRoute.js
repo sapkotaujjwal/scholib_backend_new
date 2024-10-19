@@ -25,6 +25,7 @@ const {
   getExamInfo,
   updateCourseNext,
   startNewSession,
+  getAccountsInfo,
 } = require("../controllers/adminController");
 const upload = require("../config/multer");
 
@@ -424,6 +425,21 @@ router.get(
       success: true,
       status: "Session Started",
       message: "New session has been started and all the students are promoted",
+    });
+  }
+);
+
+// Get Accounts Info for daily activities
+router.get(
+  "/:schoolCode/accounts/info",
+  verifySchoolStaff,
+  checkAdmin,
+  getAccountsInfo,
+  (req, res) => {
+    res.status(200).send({
+      success: true,
+      status: "Successful",
+      data: req.data,
     });
   }
 );
