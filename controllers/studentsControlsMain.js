@@ -227,11 +227,11 @@ async function startBusService(req, res, next) {
 
     // Check if bus service is already active (bus.0.end exists)
     const session = student.session[0];
-    if (session.bus.length > 0 && session.bus[0].end) {
+    if (session.bus.length > 0 && !session.bus[0].end) {
       throw new Error("Bus service already active for this session");
     }
 
-    await StudentNew.updateOne(
+    const updateResult = await StudentNew.updateOne(
       {
         studentId: _id,
         schoolCode,
@@ -240,12 +240,21 @@ async function startBusService(req, res, next) {
       {
         $push: {
           "session.$.bus": {
-            place: location,
-            start: getDate().fullDate,
+            $each: [
+              {
+                place: location,
+                start: getDate().fullDate,
+              },
+            ],
+            $position: 0, // This makes sure it is added to the beginning
           },
         },
       }
     );
+
+    if (updateResult.modifiedCount === 0) {
+      throw new Error("Failed to stop the bus service.");
+    }
 
     next();
   } catch (e) {
@@ -259,34 +268,57 @@ async function startBusService(req, res, next) {
 }
 
 // End the bus Service for the student
+
+// End the bus Service for the student
 async function endBusService(req, res, next) {
   try {
     const { _id, schoolCode } = req.params;
     const classId = req.query.classId;
 
-    // Update the bus service status
+    // Step 1: Find the student and check if the bus service is active
+    const student = await StudentNew.findOne(
+      {
+        studentId: _id,
+        schoolCode,
+        "session.courseId": classId,
+      },
+      {
+        "session.$": 1, // Only retrieve the matching session
+      }
+    );
+
+    if (!student || !student.session || student.session.length === 0) {
+      return res.status(404).send({
+        success: false,
+        status: "Session not found",
+      });
+    }
+
+    const busService = student.session[0].bus?.[0]; // Check the first bus entry
+
+    if (!busService || busService.end) {
+      return res.status(400).send({
+        success: false,
+        status: "Bus service is already inactive or not found",
+      });
+    }
+
+    // Step 2: Update the bus service to end it
     const updateResult = await StudentNew.updateOne(
       {
         studentId: _id,
         schoolCode,
         "session.courseId": classId,
-        "session.bus.end": { $exists: false }, // Check if the bus service is currently active
       },
       {
         $set: {
-          "session.$.bus.$[bus].end": getDate().fullDate,
+          "session.$.bus.0.end": getDate().fullDate, // Update the first bus entry
         },
-      },
-      {
-        arrayFilters: [
-          { "bus.end": { $exists: false } }, // Ensure the bus entry is active
-        ],
       }
     );
 
-    // If no documents were updated, throw an error
-    if (updateResult.matchedCount === 0) {
-      throw new Error("Bus service is already inactive or session not found");
+    if (updateResult.modifiedCount === 0) {
+      throw new Error("Failed to stop the bus service.");
     }
 
     next();
