@@ -26,6 +26,8 @@ const {
   updateCourseNext,
   startNewSession,
   getAccountsInfo,
+  updateSubjectTeachers,
+  updateFeesInfo,
 } = require("../controllers/adminController");
 const upload = require("../config/multer");
 
@@ -440,6 +442,36 @@ router.get(
       success: true,
       status: "Successful",
       data: req.data,
+    });
+  }
+);
+
+//Update Subject Teachers of a section
+router.post(
+  "/:schoolCode/section/updateSubjectTeachers",
+  verifySchoolStaff,
+  checkAdmin,
+  updateSubjectTeachers,
+  (req, res) => {
+    res.status(200).send({
+      success: true,
+      status: "Subject Teachers Updated",
+      message: "Subject teachers updated Successfully",
+    });
+  }
+);
+
+//Update Fees Info
+router.post(
+  "/:schoolCode/course/feeUpdate",
+  verifySchoolStaff,
+  checkAdmin,
+  updateFeesInfo,
+  (req, res) => {
+    res.status(200).send({
+      success: true,
+      status: "Fees Updated",
+      message: "Fees has been updated successfully",
     });
   }
 );

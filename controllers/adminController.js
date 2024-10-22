@@ -1656,7 +1656,9 @@ async function getAccountsInfo(req, res, next) {
     let year = req.query.year || getDate().year;
     year = parseInt(year);
 
-    req.data = await Account.findOne({ schoolCode, year }).select("paymentHistory");
+    req.data = await Account.findOne({ schoolCode, year }).select(
+      "paymentHistory"
+    );
 
     next();
   } catch (e) {
@@ -1664,6 +1666,78 @@ async function getAccountsInfo(req, res, next) {
     return res.status(500).send({
       success: false,
       status: "Exam info failed to get",
+      message: e.message,
+    });
+  }
+}
+
+// Update Subject Teachers
+async function updateSubjectTeachers(req, res, next) {
+  try {
+    const { schoolCode } = req.params;
+    const section = req.query.section;
+    const sectionId = req.query.sectionId;
+
+    const data = req.body;
+
+    await Promise.all([
+      School.findOneAndUpdate(
+        { schoolCode, "course.groups.sections._id": sectionId }, // Find the school and the specific section
+        {
+          $set: {
+            "course.$[].groups.$[].sections.$[sec].subjects": data,
+          }, // Update the subjects array
+        },
+        {
+          arrayFilters: [{ "sec._id": sectionId }], // Filter to target the right section
+          new: true, // Return the updated document
+        }
+      ),
+
+      SectionNew.findOneAndUpdate(
+        { _id: section, schoolCode },
+        {
+          $set: { subjects: data }, // Replace the subjects array with new data
+        },
+        {
+          new: true, // Return the updated section document
+        }
+      ),
+    ]);
+
+    next();
+  } catch (e) {
+    console.log(e);
+    return res.status(500).send({
+      success: false,
+      status: "Subject teachers failed to update",
+      message: e.message,
+    });
+  }
+}
+
+// Update Fees Info
+async function updateFeesInfo(req, res, next) {
+  try {
+    const { schoolCode } = req.params;
+    const courseId = req.query.section;
+    const data = req.body;
+
+    await School.findOneAndUpdate(
+      { schoolCode, "course._id": courseId }, // Find the school and the specific course
+      {
+        $set: {
+          "course.$.fees": data, // Update the fees array directly in course
+        },
+      },
+    );
+
+    next();
+  } catch (e) {
+    console.log(e);
+    return res.status(500).send({
+      success: false,
+      status: "Subject teachers failed to update",
       message: e.message,
     });
   }
@@ -1697,4 +1771,6 @@ module.exports = {
   suspendStaff,
   addStaff,
   getAccountsInfo,
+  updateSubjectTeachers,
+  updateFeesInfo,
 };
