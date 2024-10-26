@@ -1122,11 +1122,10 @@ const updateSchool = async (req, res, next) => {
 };
 
 // Start New Session
-
 const startNewSession = async (req, res, next) => {
   try {
     const { schoolCode } = req.params;
-    const classesList = JSON.parse(req.query.classesList);
+    const classesList1 = JSON.parse(req.query.classesList);
     const year = getDate().year;
 
     const school = await School.findOne({ schoolCode }).populate({
@@ -1144,6 +1143,86 @@ const startNewSession = async (req, res, next) => {
 
     const course = school.course2;
     const tempCourse = JSON.parse(JSON.stringify(course));
+
+    function getClassesChain(startingCourseIds, allCourses) {
+      allCourses = allCourses.map((each) => {
+        return {
+          _id: each._id.toString(),
+          next: each.next,
+        };
+      });
+
+      // Helper function to find a course by ID
+      const findCourseById = (id) =>
+        allCourses.find((course) => course._id === id || course.id === id);
+
+      // Helper function to get complete chain starting from a course
+      function getCompleteChain(startCourse) {
+        const chain = [];
+        let current = startCourse;
+
+        while (current) {
+          chain.push(current._id || current.id);
+          if (!current.next) break;
+          current = findCourseById(current.next);
+        }
+
+        return chain;
+      }
+
+      // Helper function to get chain backwards
+      function getBackwardChain(startCourse) {
+        const chain = [];
+        let current = startCourse;
+
+        // Find courses that point to current course
+        while (true) {
+          const prevCourse = allCourses.find(
+            (course) =>
+              (course._id || course.id) !== (current._id || current.id) &&
+              course.next === (current._id || current.id)
+          );
+          if (!prevCourse) break;
+          chain.unshift(prevCourse._id || prevCourse.id);
+          current = prevCourse;
+        }
+
+        return chain;
+      }
+
+      const chains = new Set();
+      const unconnectedIds = new Set();
+
+      // Process each starting course ID
+      startingCourseIds.forEach((startId) => {
+        const startCourse = findCourseById(startId);
+        if (!startCourse) {
+          unconnectedIds.add(startId);
+          return;
+        }
+
+        // Get the complete chain (forward and backward)
+        const forwardChain = getCompleteChain(startCourse);
+        const backwardChain = getBackwardChain(startCourse);
+        const fullChain = [...backwardChain, ...forwardChain];
+
+        // Convert chain to string for comparison
+        chains.add(fullChain.join(","));
+      });
+
+      // Convert chains back to arrays and sort them
+      const result = [...chains].map((chain) => chain.split(","));
+
+      // Add unconnected IDs as separate arrays
+      if (unconnectedIds.size > 0) {
+        result.push([...unconnectedIds]);
+      }
+
+      return result;
+    }
+
+    const classesChain = getClassesChain(classesList1, school.course);
+    const classesList = classesChain.flat();
 
     if (!school || !course) {
       throw new Error("School or Course not found");
@@ -1261,7 +1340,7 @@ const startNewSession = async (req, res, next) => {
                     sectionId: section._id.toString(),
                     subjects: section.subjects.map((subject) => ({
                       subject: subject.subject,
-                      teacher: subject.teacher._id,
+                      teacher: subject.teacher?._id ?? null,
                     })),
                   });
                   await newSection.save();
@@ -1540,8 +1619,6 @@ const startNewSession = async (req, res, next) => {
       }
     }
 
-    // throw new Error("This feature is being updated will be availabe soon..");
-
     await school.save();
     next();
   } catch (e) {
@@ -1720,16 +1797,15 @@ async function updateSubjectTeachers(req, res, next) {
 async function updateFeesInfo(req, res, next) {
   try {
     const { schoolCode } = req.params;
-    const courseId = req.query.section;
+    const courseId = req.query.courseId;
     const data = req.body;
 
     await School.findOneAndUpdate(
-      { schoolCode, "course._id": courseId }, // Find the school and the specific course
       {
-        $set: {
-          "course.$.fees": data, // Update the fees array directly in course
-        },
+        schoolCode,
+        "course._id": courseId,
       },
+      { $set: { "course.$.fees": data } }
     );
 
     next();
@@ -1737,7 +1813,7 @@ async function updateFeesInfo(req, res, next) {
     console.log(e);
     return res.status(500).send({
       success: false,
-      status: "Subject teachers failed to update",
+      status: "Course fee failed to update",
       message: e.message,
     });
   }
