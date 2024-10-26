@@ -24,7 +24,6 @@ const {
   publishResult,
   getExamInfo,
   updateCourseNext,
-  startNewSession,
   getAccountsInfo,
   updateSubjectTeachers,
   updateFeesInfo,
@@ -35,6 +34,7 @@ const upload = require("../config/multer");
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
 const { verifySchoolStaff } = require("../middlewares/verifyToken");
+const { startNewSession } = require("../controllers/startNewSessionNew");
 
 //middlewares
 router.use(express.json());
