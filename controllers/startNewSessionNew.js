@@ -519,6 +519,3 @@ const startNewSession = async (req, res, next) => {
 };
 
 module.exports = { startNewSession };
-
-
-
