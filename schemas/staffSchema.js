@@ -172,15 +172,16 @@ staffSchema.pre("save", async function (next) {
   next();
 });
 
-// Method to generate a unique 4-digit code based on schoolCode
-async function generateUniqueCode(model, schoolCode) {
+// Method to generate a unique 6-digit code
+async function generateUniqueCode(model) {
   while (true) {
     const num = Math.floor(100000 + Math.random() * 900000).toString(); // Generate a 6-digit number
-
     const code = parseInt(num);
-    const existingStaff = await model.findOne({ schoolCode, loginId: code });
+
+    // Check if the generated code already exists in the entire collection
+    const existingStaff = await model.findOne({ loginId: code });
     if (!existingStaff) {
-      return code;
+      return code; // Return the unique code if it doesn't exist
     }
   }
 }
