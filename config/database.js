@@ -2,7 +2,7 @@ const mongoose = require('mongoose')
 
 const connectDb = async (dburi) =>{
 try{
-    await mongoose.connect(`${dburi}/scholibNew`,{
+    await mongoose.connect(`${dburi}/scholibTesting`,{
         useNewUrlParser: true,
         useUnifiedTopology: true,
     })

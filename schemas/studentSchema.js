@@ -274,12 +274,14 @@ studentSchema.pre("save", async function (next) {
   next();
 });
 
-// Method to generate a unique 4-digit code based on schoolCode
-async function generateUniqueCode(model, schoolCode) {
+// Method to generate a unique 6-digit code for loginId
+async function generateUniqueCode(model) {
   while (true) {
     const num = Math.floor(100000 + Math.random() * 900000).toString(); // Generate a 6-digit number
     const code = parseInt(num);
-    const existingStudent = await model.findOne({ schoolCode, loginId: code });
+
+    // Check if any document already has this loginId
+    const existingStudent = await model.findOne({ loginId: code });
     if (!existingStudent) {
       return code;
     }
