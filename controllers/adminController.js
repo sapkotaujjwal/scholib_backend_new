@@ -7,10 +7,7 @@ const { photoWork } = require("../config/photoWork");
 const { getDate } = require("../config/nepaliDate");
 const Exam = require("../schemas/examSchema");
 const { sendMail } = require("../config/sendEmail");
-const {
-  CourseNew,
-  SectionNew,
-} = require("../schemas/courseSchema");
+const { CourseNew, SectionNew } = require("../schemas/courseSchema");
 const Account = require("../schemas/accountSchema");
 
 // Create a new course and save it in school schema
@@ -1117,7 +1114,6 @@ const updateSchool = async (req, res, next) => {
     return;
   }
 };
-
 
 // *****************************************************************************
 // below here are the optimized code which can be used for our work
