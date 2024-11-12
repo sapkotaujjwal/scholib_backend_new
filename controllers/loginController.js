@@ -36,7 +36,6 @@ const loginController = async (req, res, next) => {
       if (passwordMatch) {
         req.user = student;
         await generateTokenStudent(req, res, next);
-        // next();
       } else {
         return res.status(409).json({
           success: false,
@@ -115,6 +114,12 @@ const loginController2 = async (req, res, next) => {
     if (user === "Staff") {
       req.user = await getStaffFromToken(req, res);
     }
+
+    req.user.password = undefined;
+    req.user.tokens = req.user.tokens.map((ind)=>{
+      ind.token = undefined;
+      return ind;
+    })
 
     if (!req.user) {
       return res.status(500).send({
