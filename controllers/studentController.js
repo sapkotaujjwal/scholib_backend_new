@@ -125,6 +125,7 @@ async function getStudentInfoFromCourse(req, res, next) {
       { "students.$": 1 }
     );
 
+
     const sectionId = school.students[0].course.section;
 
     const workingDates = await SectionNew.findOne({
@@ -171,6 +172,7 @@ async function getStudentInfoFromCourse(req, res, next) {
       student,
       workingDays: workingDates.workingDates,
       exam: req.exam,
+      course: school.students[0].course
     };
 
     next();

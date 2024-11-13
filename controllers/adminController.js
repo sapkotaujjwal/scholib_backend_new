@@ -1,9 +1,9 @@
-const cloudinary = require("../config/cloudinary");
+
 const Course = require("../schemas/courseSchema");
 const { School } = require("../schemas/schoolSchema");
 const Staff = require("../schemas/staffSchema");
 const Gallery = require("../schemas/gallerySchema");
-const { photoWork } = require("../config/photoWork");
+const { photoWork, deleteImage } = require("../config/photoWork");
 const { getDate } = require("../config/nepaliDate");
 const Exam = require("../schemas/examSchema");
 const { sendMail } = require("../config/sendEmail");
@@ -267,18 +267,7 @@ async function deleteGallery(req, res, next) {
 
     const filteredObject = gallery.gallery.find((obj) => obj._id.equals(_id));
 
-    await cloudinary.uploader.destroy(
-      filteredObject.image.public_id,
-      (error, result) => {
-        if (error) {
-          return res.status(500).send({
-            success: false,
-            status: "Image deletion failed",
-            message: `${error.message}`,
-          });
-        }
-      }
-    );
+    await deleteImage(filteredObject.image.public_id);
 
     gallery.gallery = gallery.gallery.filter((image) => image._id != _id);
     await gallery.save();
@@ -329,10 +318,9 @@ async function staffProfileUpdate(req, res, next) {
       new: true,
     });
 
-    const updatedSchool = await School.findOneAndUpdate(
+    await School.findOneAndUpdate(
       { schoolCode, "staffs._id": _id },
-      { $set: { "staffs.$": updatedDoc } },
-      { new: true }
+      { $set: { "staffs.$": updatedDoc } }
     );
 
     req.staff = updatedDoc;
@@ -887,15 +875,7 @@ const deleteOthersTab = async (req, res, next) => {
     const ourImages = tabToDelete.others[0].images;
 
     ourImages.forEach(async (img) => {
-      await cloudinary.uploader.destroy(img.public_id, (error, result) => {
-        if (error) {
-          return res.status(500).send({
-            success: false,
-            status: "Tab deletion failed",
-            message: `${error.message}`,
-          });
-        }
-      });
+      await deleteImage(img.public_id);
     });
 
     const updatedSchool = await School.findOneAndUpdate(

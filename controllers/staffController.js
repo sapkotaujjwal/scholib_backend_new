@@ -1,6 +1,5 @@
-const cloudinary = require("../config/cloudinary");
 const Gallery = require("../schemas/gallerySchema");
-const { photoWork } = require("../config/photoWork");
+const { photoWork, deleteImage } = require("../config/photoWork");
 const Update = require("../schemas/updateSchema");
 const { getCurrentNepaliDate } = require("../config/nepaliDate");
 const Student = require("../schemas/studentSchema");
@@ -129,15 +128,7 @@ async function deleteUpdate(req, res, next) {
     }
 
     filteredObject.images.forEach(async (img) => {
-      await cloudinary.uploader.destroy(img.public_id, (error, result) => {
-        if (error) {
-          return res.status(500).send({
-            success: false,
-            status: "Image deletion failed",
-            message: `${error.message}`,
-          });
-        }
-      });
+      await deleteImage(img.public_id);
     });
 
     update.update = update.update.filter((obj) => obj._id != _id);
