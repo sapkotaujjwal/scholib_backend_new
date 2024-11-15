@@ -60,7 +60,6 @@ async function changePassword(req, res, next) {
       } else {
         await generateTokenStaff(req, res);
       }
-
     } else {
       return res.status(409).json({
         success: false,
