@@ -1,0 +1,1 @@
+Here in this uplaod folder images will be stored temporarily so in absence of this folder image related operations will not be carried out
