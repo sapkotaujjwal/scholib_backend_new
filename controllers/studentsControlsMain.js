@@ -845,7 +845,14 @@ async function deleteStudent(req, res, next) {
     if (olderData && olderData.isNew) {
       await School.findOneAndUpdate(
         { schoolCode },
-        { $unshift: { olderData: olderData._id } },
+        {
+          $push: {
+            olderData: {
+              $each: [olderData], // Wrap `olderData` in an array
+              $position: 0, // Add at the beginning of the array
+            },
+          },
+        },
         { new: true }
       );
     }

@@ -12,7 +12,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-function sendMail(mailOptions) {
+function sendMail2(mailOptions) {
   return new Promise((resolve, reject) => {
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
@@ -28,11 +28,12 @@ const connectionString =
   "endpoint=https://for-email-service.india.communication.azure.com/;accesskey=2MTE87oyf1V2VMmSMLBDVchnJH0G7JfYZO8u2zZGmqMR96ZvW7ddJQQJ99AKACULyCp3baDLAAAAAZCSx5Lc";
 const client = new EmailClient(connectionString);
 
-async function sendMail2(options) {
+async function sendMail(options) {
+  return 1+1;
   const emailMessage = {
     senderAddress:
-      options.from ||
-      "DoNotReply@8197d8e7-73ad-44e6-a0d2-12972607c7c1.azurecomm.net",
+      // options.from ||
+      "DoNotReply@scholib.com",
     content: {
       subject: options.subject,
       // plainText: "I am ujjwal sapkota.",

@@ -489,7 +489,18 @@ const schoolSchema = new mongoose.Schema({
   ],
 
   course2: [{ type: mongoose.Schema.Types.ObjectId, ref: "CourseNew" }],
-  olderData: [{ type: mongoose.Schema.Types.ObjectId, ref: "OlderData" }],
+  olderData: [
+    {
+      _id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "olderData", // Reference to the OlderData schema
+      },
+      year: {
+        type: Number,
+        required: true,
+      },
+    },
+  ],
 
   // from other Schemas
   staffs: [staffSchema],
@@ -564,8 +575,6 @@ const schoolSchema = new mongoose.Schema({
     maxlength: 6,
     immutable: true,
   },
-
-  
 });
 
 // Pre-save hook

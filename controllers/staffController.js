@@ -3,7 +3,7 @@ const { photoWork, deleteImage } = require("../config/photoWork");
 const Update = require("../schemas/updateSchema");
 const { getCurrentNepaliDate } = require("../config/nepaliDate");
 const Student = require("../schemas/studentSchema");
-const { School } = require("../schemas/schoolSchema");
+const { School, OlderData } = require("../schemas/schoolSchema");
 const Staff = require("../schemas/staffSchema");
 const Exam = require("../schemas/examSchema");
 const { SectionNew } = require("../schemas/courseSchema");
@@ -257,7 +257,6 @@ async function staffUpdate(req, res, next) {
   }
 }
 
-
 // here this one is messy i don't know what is happening here
 async function studentsAttendance(req, res, next) {
   try {
@@ -385,18 +384,23 @@ async function getStaff(req, res, next) {
 async function getAllStudents(req, res, next) {
   try {
     const { schoolCode } = req.params;
+    const year = req.query.year || null;
 
-    const school = await School.findOne({ schoolCode });
+    if (!year) {
+      const school = await School.findOne({ schoolCode });
+      if (!school) {
+        return res.status(404).send({
+          success: false,
+          status: `School Not Found`,
+          message: "The school you are looking for does not exists",
+        });
+      }
 
-    if (!school) {
-      return res.status(404).send({
-        success: false,
-        status: `School Not Found`,
-        message: "The school you are looking for does not exists",
-      });
+      req.student = school.students;
+    } else {
+      const olderData = await OlderData.findOne({ schoolCode, year });
+      req.student = olderData.students;
     }
-
-    req.student = school.students;
 
     next();
   } catch (e) {
