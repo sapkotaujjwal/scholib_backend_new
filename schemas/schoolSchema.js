@@ -609,7 +609,47 @@ const olderDataSchema = new mongoose.Schema({
     ref: "School",
     required: true,
   },
-  students: [StudentSchemaNew],
+  students: [
+    {
+      name: {
+        type: String,
+        required: true,
+      },
+      course: {
+        class: { type: mongoose.Schema.Types.ObjectId, ref: "CourseNew" },
+        group: { type: mongoose.Schema.Types.ObjectId, ref: "groupNew" },
+        section: { type: mongoose.Schema.Types.ObjectId, ref: "sectionNew" },
+      },
+      roll: {
+        type: String,
+        // required: true,
+      },
+      status: {
+        type: String,
+        default: "active", // or another default value
+      },
+      loginId: {
+        type: Number,
+        minlength: 6,
+        maxlength: 6,
+        immutable: true,
+        unique: true,
+        required: true,
+        sparse: true, // This allows multiple null values
+      },
+      removedOn: {
+        type: String,
+        required: true,
+      },
+      oldCourses: [
+        {
+          class: { type: mongoose.Schema.Types.ObjectId, ref: "CourseNew" },
+          group: { type: mongoose.Schema.Types.ObjectId, ref: "groupNew" },
+          section: { type: mongoose.Schema.Types.ObjectId, ref: "sectionNew" },
+        },
+      ],
+    },
+  ],
   courses: [{ type: mongoose.Schema.Types.ObjectId, ref: "CourseNew" }],
 });
 

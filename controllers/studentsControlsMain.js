@@ -837,7 +837,11 @@ async function deleteStudent(req, res, next) {
     // Push the deleted student to OlderData
     const olderData = await OlderData.findOneAndUpdate(
       { schoolCode, year },
-      { $push: { students: deletedStudent } },
+      {
+        $push: {
+          students: { ...deletedStudent, removedOn: getDate().fullDate },
+        },
+      },
       { new: true, upsert: true }
     );
 
