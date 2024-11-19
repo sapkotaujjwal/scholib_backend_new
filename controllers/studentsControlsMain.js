@@ -870,10 +870,16 @@ async function deleteStudent(req, res, next) {
       });
     }
 
-    await SectionNew.findOneAndUpdate(
-      { schoolCode, _id: sectionId },
-      { $pull: { students: student._id } }
-    );
+    await Promise.all([
+      SectionNew.findOneAndUpdate(
+        { schoolCode, _id: sectionId },
+        { $pull: { students: student._id } }
+      ),
+      StudentNew.findOneAndUpdate(
+        { schoolCode, _id: student._id },
+        { $set: { removedOn: getDate().fullDate } }
+      ),
+    ]);
 
     next();
   } catch (e) {

@@ -400,6 +400,16 @@ const startNewSession = async (req, res, next) => {
                 )
               );
 
+              // Assuming `students` is an array of student objects
+              await Promise.all(
+                studentsToDelete.map((student) =>
+                  StudentNew.findOneAndUpdate(
+                    { schoolCode, _id: student._id },
+                    { $set: { removedOn: getDate().fullDate } }
+                  )
+                )
+              );
+
               // Push the deleted student to OlderData
               const olderData = await OlderData.findOneAndUpdate(
                 { schoolCode, year },

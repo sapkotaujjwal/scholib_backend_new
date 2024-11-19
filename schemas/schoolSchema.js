@@ -637,10 +637,6 @@ const olderDataSchema = new mongoose.Schema({
         required: true,
         sparse: true, // This allows multiple null values
       },
-      removedOn: {
-        type: String,
-        required: true,
-      },
       oldCourses: [
         {
           class: { type: mongoose.Schema.Types.ObjectId, ref: "CourseNew" },
