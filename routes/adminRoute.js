@@ -10,6 +10,7 @@ const {
   findSchoolAdmissions,
   suspendStaff,
   delteBusRoute,
+  updateBusRoute,
   addBusRoute,
   deleteReview,
   deleteFaq,
@@ -177,6 +178,21 @@ router.delete(
       success: true,
       status: "Bus Route Deleted",
       message: "Bus Route has been deleted successfully",
+    });
+  }
+);
+
+// Update a bus route
+router.put(
+  "/:schoolCode/busRoute/:_id",
+  verifySchoolStaff,
+  checkAdmin,
+  updateBusRoute,
+  (req, res) => {
+    res.status(200).send({
+      success: true,
+      status: "Bus Route Updated",
+      message: "Bus route has been updated successfully",
     });
   }
 );

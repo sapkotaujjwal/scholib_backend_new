@@ -1,4 +1,3 @@
-
 const Course = require("../schemas/courseSchema");
 const { School } = require("../schemas/schoolSchema");
 const Staff = require("../schemas/staffSchema");
@@ -584,6 +583,43 @@ const delteBusRoute = async (req, res, next) => {
   }
 };
 
+//Update a school bus route
+const updateBusRoute = async (req, res, next) => {
+  try {
+    const { schoolCode, _id } = req.params;
+    const data = req.body;
+
+    const updatedSchool = await School.findOneAndUpdate(
+      { schoolCode, "busFee._id": _id },
+      {
+        $set: {
+          "busFee.$.location": data.place,
+        },
+        $push: {
+          "busFee.$.amounts": {
+            $each: [{ date: getDate().fullDate, amount: parseInt(data.amount) }],
+            $position: 0,
+          },
+        },
+      },
+    );
+    
+
+    if (!updatedSchool) {
+      throw new Error("Something went wrong");
+    }
+
+    next();
+  } catch (e) {
+    res.status(500).send({
+      success: false,
+      status: "Something went wrong",
+      message: e.message,
+    });
+    return;
+  }
+};
+
 //Add a school bus route
 const addBusRoute = async (req, res, next) => {
   try {
@@ -597,8 +633,6 @@ const addBusRoute = async (req, res, next) => {
     if (newBusRoute.amount < 0) {
       throw new Error("Amount cannot be less than 0");
     }
-
-    console.log(newBusRoute);
 
     const updatedSchool = await School.findOneAndUpdate(
       { schoolCode },
@@ -1291,6 +1325,7 @@ module.exports = {
   createNewStaff,
   findSchoolAdmissions,
   delteBusRoute,
+  updateBusRoute,
   addBusRoute,
   deleteReview,
   deleteFaq,
