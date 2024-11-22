@@ -419,7 +419,7 @@ const startNewSession = async (req, res, next) => {
                     courses: crc2._id, // Directly push the single course ID
                   },
                 },
-                { new: true, upsert: true, rawResult: true }
+                { new: true, upsert: true, includeResultMetadata: true }
               );
 
               // Add olderData ID to School if new

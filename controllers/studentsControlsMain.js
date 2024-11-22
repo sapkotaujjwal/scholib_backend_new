@@ -842,10 +842,8 @@ async function deleteStudent(req, res, next) {
           students: { ...deletedStudent, removedOn: getDate().fullDate },
         },
       },
-      { new: true, upsert: true, rawResult: true }
+      { new: true, upsert: true, includeResultMetadata: true }
     );
-
-    console.log(olderData);
 
     // Add olderData ID to School if new
     if (olderData && olderData.lastErrorObject.upserted) {
