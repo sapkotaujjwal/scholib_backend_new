@@ -14,7 +14,7 @@ const findSchoolHome = async (req, res, next) => {
     req.school = await School.findOne({ schoolCode }).select({
       students: 0,
       admissions: 0,
-      olderData: 0,
+      // olderData: 0,
     });
 
     if (!req.school) {

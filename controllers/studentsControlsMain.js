@@ -845,6 +845,8 @@ async function deleteStudent(req, res, next) {
       { new: true, upsert: true, rawResult: true }
     );
 
+    console.log(olderData);
+
     // Add olderData ID to School if new
     if (olderData && olderData.lastErrorObject.upserted) {
       await School.findOneAndUpdate(
@@ -852,7 +854,7 @@ async function deleteStudent(req, res, next) {
         {
           $push: {
             olderData: {
-              $each: [olderData], // Wrap `olderData` in an array
+              $each: [olderData.value], // Wrap `olderData` in an array
               $position: 0, // Add at the beginning of the array
             },
           },

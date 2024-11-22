@@ -424,7 +424,7 @@ const startNewSession = async (req, res, next) => {
 
               // Add olderData ID to School if new
               if (olderData && olderData.lastErrorObject.upserted) {
-                school.olderData.unshift(olderData._id);
+                school.olderData.unshift(olderData.value);
               }
 
               // Remove the students from school.students
