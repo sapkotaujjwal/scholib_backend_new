@@ -499,6 +499,10 @@ const schoolSchema = new mongoose.Schema({
         type: Number,
         required: true,
       },
+      schoolCode: {
+        type: Number,
+        required: true,
+      },
     },
   ],
 

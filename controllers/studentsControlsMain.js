@@ -842,11 +842,11 @@ async function deleteStudent(req, res, next) {
           students: { ...deletedStudent, removedOn: getDate().fullDate },
         },
       },
-      { new: true, upsert: true }
+      { new: true, upsert: true, rawResult: true }
     );
 
     // Add olderData ID to School if new
-    if (olderData && olderData.isNew) {
+    if (olderData && olderData.lastErrorObject.upserted) {
       await School.findOneAndUpdate(
         { schoolCode },
         {
