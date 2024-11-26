@@ -237,11 +237,13 @@ async function getStudentFromToken(req, res) {
         maxAge: 0,
       });
 
-      return res.status(401).send({
+      res.status(401).send({
         success: false,
         status: `Student verification failed`,
         message: `Verification failed! Please login and try again..`,
       });
+
+      return false;
     }
 
     return student;
@@ -268,6 +270,7 @@ async function getStaffFromToken(req, res) {
         message: `Token is not available..`,
       });
     }
+
     const decodedToken = jwt.verify(token, secretKey);
 
     if (!decodedToken.userId) {
@@ -307,11 +310,13 @@ async function getStaffFromToken(req, res) {
         maxAge: 0,
       });
 
-      return res.status(401).send({
+      res.status(401).send({
         success: false,
         status: `Staff verification failed`,
         message: `Verification failed! Please login and try again..`,
       });
+
+      return false;
     }
 
     return staff;

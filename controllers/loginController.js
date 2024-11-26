@@ -115,11 +115,15 @@ const loginController2 = async (req, res, next) => {
       req.user = await getStaffFromToken(req, res);
     }
 
+    if (!req.user) {
+      return;
+    }
+
     req.user.password = undefined;
-    req.user.tokens = req.user.tokens.map((ind)=>{
+    req.user.tokens = req.user.tokens.map((ind) => {
       ind.token = undefined;
       return ind;
-    })
+    });
 
     if (!req.user) {
       return res.status(500).send({
