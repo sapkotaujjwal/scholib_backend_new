@@ -597,13 +597,14 @@ const updateBusRoute = async (req, res, next) => {
         },
         $push: {
           "busFee.$.amounts": {
-            $each: [{ date: getDate().fullDate, amount: parseInt(data.amount) }],
+            $each: [
+              { date: getDate().fullDate, amount: parseInt(data.amount) },
+            ],
             $position: 0,
           },
         },
-      },
+      }
     );
-    
 
     if (!updatedSchool) {
       throw new Error("Something went wrong");
@@ -1224,7 +1225,7 @@ async function addStaff(req, res, next) {
   }
 }
 
-// get exam info
+// get accounts info
 async function getAccountsInfo(req, res, next) {
   try {
     const { schoolCode } = req.params;
@@ -1234,6 +1235,10 @@ async function getAccountsInfo(req, res, next) {
     req.data = await Account.findOne({ schoolCode, year }).select(
       "paymentHistory"
     );
+
+    if (!req.data) {
+      req.data = [];
+    }
 
     next();
   } catch (e) {
