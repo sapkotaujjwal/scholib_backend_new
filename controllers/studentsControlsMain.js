@@ -8,12 +8,7 @@ const {
   isSameDay,
 } = require("../config/nepaliDate");
 
-const {
-  CourseNew,
-  SectionNew,
-  GroupNew,
-  StudentNew,
-} = require("../schemas/courseSchema");
+const { SectionNew, StudentNew } = require("../schemas/courseSchema");
 
 const { sendMail } = require("../config/sendEmail");
 const Exam = require("../schemas/examSchema");
@@ -253,7 +248,7 @@ async function startBusService(req, res, next) {
     );
 
     if (updateResult.modifiedCount === 0) {
-      throw new Error("Failed to stop the bus service.");
+      throw new Error("Failed to start the bus service.");
     }
 
     next();
@@ -318,7 +313,7 @@ async function endBusService(req, res, next) {
     );
 
     if (updateResult.modifiedCount === 0) {
-      throw new Error("Failed to stop the bus service.");
+      throw new Error("Failed to end the bus service.");
     }
 
     next();
@@ -415,8 +410,6 @@ async function payFees(req, res, next) {
     });
   }
 }
-
-
 
 // Add a book to student's lended list
 async function addBook(req, res, next) {
@@ -622,7 +615,6 @@ async function changeCourse(req, res, next) {
   }
 }
 
-
 // get all students from the course schema
 async function getAllStudentsFromCourse(req, res, next) {
   try {
@@ -757,27 +749,29 @@ async function takeAttendance(req, res, next) {
 
 // update the student profile
 async function studentProfileUpdate(req, res, next) {
+  const session = await mongoose.startSession();
+
   try {
     const { schoolCode, _id } = req.params;
     const data = JSON.parse(req.body.student);
 
+    session.startTransaction();
+
+    // Process uploaded photos
     if (req.files["photo1"]) {
       data.photo1 = await photoWork(req.files["photo1"][0]);
     }
-
     if (req.files["photo2"]) {
       data.photo2 = await photoWork(req.files["photo2"][0]);
     }
-
     if (req.files["photo3"]) {
       data.photo3 = await photoWork(req.files["photo3"][0]);
     }
-
     if (req.files["photo4"]) {
       data.photo4 = await photoWork(req.files["photo4"][0]);
     }
 
-    // Remove unwanted fields
+    // Remove unwanted fields from data
     const unwantedFields = [
       "status",
       "loginId",
@@ -793,36 +787,49 @@ async function studentProfileUpdate(req, res, next) {
       "scholib",
       "tokens",
     ];
-
     unwantedFields.forEach((field) => delete data[field]);
 
-    // Update student document
+    // Update the student document
     const updatedStudent = await Student.findOneAndUpdate({ _id }, data, {
       new: true,
+      session,
     });
+
+    if (!updatedStudent) {
+      throw new Error("Student not found");
+    }
+
+    // Perform updates concurrently
     await Promise.all([
+      // Update student details in the School collection
       School.findOneAndUpdate(
         { schoolCode, "students._id": _id },
         { $set: { "students.$": updatedStudent } },
-        { new: true }
+        { new: true, session }
       ),
+      // Update student name in StudentNew collection
       StudentNew.findOneAndUpdate(
-        {
-          studentId: _id,
-          schoolCode,
-        },
-        {
-          $set: { name: data.name },
-        }
+        { studentId: _id, schoolCode },
+        { $set: { name: data.name } },
+        { session }
       ),
     ]);
+
+    // Commit the transaction
+    await session.commitTransaction();
+    session.endSession();
 
     req.student = updatedStudent;
     next();
   } catch (e) {
+    // Roll back the transaction on error
+    await session.abortTransaction();
+    session.endSession();
+
+    console.error("Error during student profile update:", e.message);
     return res.status(500).send({
       success: false,
-      status: `Student Profile updation failed`,
+      status: "Student profile update failed",
       message: e.message,
     });
   }
@@ -830,7 +837,7 @@ async function studentProfileUpdate(req, res, next) {
 
 // ***************** below here are not optimized and are all old codes ************************
 
-// Suspend student from school this one is okay but i am not sure will i ever use it or not
+// Suspend student from school this one is okay but i am not sure will i ever use it or  not basically it is a part of the code but i am not using it anywhere so yupe nothing much
 async function suspendStudent(req, res, next) {
   try {
     const { schoolCode, _id } = req.params;
@@ -858,34 +865,35 @@ async function suspendStudent(req, res, next) {
 
 // Delete student from school and from the course okay and this one has atomicity
 async function deleteStudent(req, res, next) {
+  const session = await mongoose.startSession();
+
   try {
     const { _id, schoolCode } = req.params;
     const year = getDate().year;
 
-    // Find the student first
+    session.startTransaction();
+
+    // Find the student in the School document
     const school = await School.findOne(
       { schoolCode, "students._id": _id },
       { "students.$": 1 } // Only return the matching student
-    );
+    ).session(session);
 
     if (!school || !school.students || !school.students.length) {
-      return res.status(404).send({
-        success: false,
-        status: "Student not found",
-        message: "No student found with the given ID",
-      });
+      throw new Error("No student found with the given ID in School");
     }
 
     const deletedStudent = school.students[0]; // Extract the student
     const sectionId = deletedStudent.course.section;
 
-    // Now delete the student from school
+    // Remove the student from the School's students array
     await School.findOneAndUpdate(
       { schoolCode },
-      { $pull: { students: { _id } } }
+      { $pull: { students: { _id } } },
+      { session }
     );
 
-    // Push the deleted student to OlderData
+    // Push the removed student to OlderData
     const olderData = await OlderData.findOneAndUpdate(
       { schoolCode, year },
       {
@@ -893,48 +901,59 @@ async function deleteStudent(req, res, next) {
           students: { ...deletedStudent, removedOn: getDate().fullDate },
         },
       },
-      { new: true, upsert: true, includeResultMetadata: true }
+      { new: true, upsert: true, session }
     );
 
-    // Add olderData ID to School if new
-    if (olderData && olderData.lastErrorObject.upserted) {
+    // If a new OlderData document was created, link it to the School
+    if (olderData && olderData.upsertedId) {
       await School.findOneAndUpdate(
         { schoolCode },
         {
           $push: {
             olderData: {
-              $each: [olderData.value], // Wrap `olderData` in an array
+              $each: [olderData._id], // Reference only the `_id`
               $position: 0, // Add at the beginning of the array
             },
           },
         },
-        { new: true }
+        { session }
       );
     }
 
-    const student = await StudentNew.findOne({ schoolCode, studentId: _id });
+    // Find the student in the StudentNew collection
+    const student = await StudentNew.findOne({
+      schoolCode,
+      studentId: _id,
+    }).session(session);
     if (!student) {
-      return res.status(404).send({
-        success: false,
-        status: "Student not found in StudentNew",
-        message: "No student found in StudentNew with the given ID",
-      });
+      throw new Error("No student found in StudentNew with the given ID");
     }
 
+    // Perform concurrent updates to SectionNew and StudentNew
     await Promise.all([
       SectionNew.findOneAndUpdate(
         { schoolCode, _id: sectionId },
-        { $pull: { students: student._id } }
+        { $pull: { students: student._id } },
+        { session }
       ),
       StudentNew.findOneAndUpdate(
         { schoolCode, _id: student._id },
-        { $set: { removedOn: getDate().fullDate } }
+        { $set: { removedOn: getDate().fullDate } },
+        { session }
       ),
     ]);
 
+    // Commit the transaction
+    await session.commitTransaction();
+    session.endSession();
+
     next();
   } catch (e) {
-    console.log(e);
+    // Roll back the transaction on error
+    await session.abortTransaction();
+    session.endSession();
+
+    console.error("Error during student deletion:", e.message);
     return res.status(500).send({
       success: false,
       status: "Failed to delete the student",

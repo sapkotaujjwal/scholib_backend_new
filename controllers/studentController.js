@@ -5,6 +5,9 @@ const { School } = require("../schemas/schoolSchema");
 
 const { StudentNew, SectionNew } = require("../schemas/courseSchema");
 
+
+// Here review these codes they kind of have some issues
+
 //update student
 async function studentUpdate(req, res, next) {
   try {
@@ -125,7 +128,6 @@ async function getStudentInfoFromCourse(req, res, next) {
       { "students.$": 1 }
     );
 
-
     const sectionId = school.students[0].course.section;
 
     const workingDates = await SectionNew.findOne({
@@ -172,7 +174,7 @@ async function getStudentInfoFromCourse(req, res, next) {
       student,
       workingDays: workingDates.workingDates,
       exam: req.exam,
-      course: school.students[0].course
+      course: school.students[0].course,
     };
 
     next();

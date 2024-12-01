@@ -240,10 +240,9 @@ async function staffUpdate(req, res, next) {
       new: true,
     });
 
-    const updatedSchool = await School.findOneAndUpdate(
+     await School.findOneAndUpdate(
       { schoolCode, "staffs._id": data._id },
       { $set: { "staffs.$": updatedDoc } },
-      { new: true }
     );
 
     req.staff = updatedDoc;
