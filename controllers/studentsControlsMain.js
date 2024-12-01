@@ -333,16 +333,18 @@ async function endBusService(req, res, next) {
 
 // Pay student Fee by school Management Staffs
 async function payFees(req, res, next) {
+  const session = await mongoose.startSession();
+
   try {
     const { _id, schoolCode } = req.params;
     const classId = req.query.classId;
-    const amount = req.query.amount;
+    const amount = parseFloat(req.query.amount); // Ensure amount is a number
     const remark = req.query.remark;
 
     const year = getDate().year;
 
-    if (amount < 0) {
-      throw new Error("Amount cannot be less than 0");
+    if (amount <= 0) {
+      throw new Error("Amount must be greater than 0");
     }
 
     const dateAndTime = getCurrentNepaliDate();
@@ -357,38 +359,64 @@ async function payFees(req, res, next) {
       student: _id,
     };
 
-    await StudentNew.findOneAndUpdate(
-      {
-        studentId: _id,
-        schoolCode,
-        "session.courseId": classId,
-      },
-      {
-        $push: { "session.$.paymentHistory": objToAdd },
-      }
-    );
+    // Start the transaction
+    session.startTransaction();
 
-    // Add the data to payment history
-    await Account.findOneAndUpdate(
-      { schoolCode, year },
-      {
-        $push: {
-          paymentHistory: objToAdd,
+    // Perform updates concurrently
+    const [studentUpdateResult, accountUpdateResult] = await Promise.all([
+      // Update the student's payment history
+      StudentNew.findOneAndUpdate(
+        {
+          studentId: _id,
+          schoolCode,
+          "session.courseId": classId,
         },
-      },
-      { new: true, upsert: true }
-    );
+        {
+          $push: { "session.$.paymentHistory": objToAdd },
+        },
+        { session, new: true }
+      ),
+      // Update the school's account payment history
+      Account.findOneAndUpdate(
+        { schoolCode, year },
+        {
+          $push: {
+            paymentHistory: objToAdd,
+          },
+        },
+        { session, new: true, upsert: true }
+      ),
+    ]);
 
+    // Validate results
+    if (!studentUpdateResult) {
+      throw new Error("Student not found or invalid class ID");
+    }
+    if (!accountUpdateResult) {
+      throw new Error("Failed to update account payment history");
+    }
+
+    // Commit the transaction
+    await session.commitTransaction();
+    session.endSession();
+
+    // Proceed to the next middleware
     next();
-  } catch (e) {
-    console.log(e);
+  } catch (error) {
+    // Abort the transaction on error
+    await session.abortTransaction();
+    session.endSession();
+
+    console.error("Error during fee payment:", error.message);
     return res.status(500).send({
       success: false,
       status: "Failed to pay fees",
-      message: e.message,
+      message: error.message,
     });
   }
 }
+
+
 
 // Add a book to student's lended list
 async function addBook(req, res, next) {
@@ -491,13 +519,14 @@ async function returnBooks(req, res, next) {
 
 // Change the student course
 async function changeCourse(req, res, next) {
+  const session = await mongoose.startSession();
+
   try {
     const { _id, schoolCode } = req.params;
-
     const { groupId, sectionId, classId } = req.body.cCourse;
     const newCourse = req.body.nCourse;
 
-    // Check if the request body is in the expected format
+    // Validate the request body
     if (
       !groupId ||
       !sectionId ||
@@ -513,7 +542,10 @@ async function changeCourse(req, res, next) {
       });
     }
 
-    // get the student and update the course
+    // Start the transaction
+    session.startTransaction();
+
+    // Update the student's course in the `StudentNew` collection
     const student = await StudentNew.findOneAndUpdate(
       {
         studentId: _id,
@@ -523,28 +555,35 @@ async function changeCourse(req, res, next) {
       {
         $set: { "session.$.courseId": newCourse.classId },
       },
-      { new: true }
+      { session, new: true }
     );
 
+    if (!student) {
+      throw new Error("Student not found or invalid class ID");
+    }
+
+    // Perform all updates concurrently using Promise.all
     await Promise.all([
-      // delete the student from the old section
-      await SectionNew.findOneAndUpdate(
+      // Remove the student from the old section
+      SectionNew.findOneAndUpdate(
         { _id: sectionId, schoolCode },
         {
           $pull: { students: student._id },
-        }
+        },
+        { session }
       ),
 
-      // add the student to the new section
-      await SectionNew.findOneAndUpdate(
+      // Add the student to the new section
+      SectionNew.findOneAndUpdate(
         { _id: newCourse.sectionId, schoolCode },
         {
           $push: { students: student._id },
-        }
+        },
+        { session }
       ),
 
-      // update the student in school schema
-      await School.findOneAndUpdate(
+      // Update the student course details in the `School` collection
+      School.findOneAndUpdate(
         {
           schoolCode: schoolCode,
           "students._id": _id,
@@ -557,20 +596,32 @@ async function changeCourse(req, res, next) {
           },
         },
         {
+          session,
           arrayFilters: [{ "student._id": _id }],
         }
       ),
     ]);
 
+    // Commit the transaction
+    await session.commitTransaction();
+    session.endSession();
+
+    // Proceed to the next middleware
     next();
-  } catch (e) {
+  } catch (error) {
+    // Abort the transaction on error
+    await session.abortTransaction();
+    session.endSession();
+
+    console.error("Error during course change:", error.message);
     return res.status(500).send({
       success: false,
       status: "Failed to update student course",
-      message: e.message,
+      message: error.message,
     });
   }
 }
+
 
 // get all students from the course schema
 async function getAllStudentsFromCourse(req, res, next) {
