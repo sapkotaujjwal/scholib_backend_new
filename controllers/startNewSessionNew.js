@@ -9,6 +9,7 @@ const {
   StudentNew,
 } = require("../schemas/courseSchema");
 
+
 const startNewSession = async (req, res, next) => {
   try {
     const { schoolCode } = req.params;

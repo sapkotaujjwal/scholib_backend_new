@@ -9,6 +9,8 @@ const { sendMail } = require("../config/sendEmail");
 const { CourseNew, SectionNew } = require("../schemas/courseSchema");
 const Account = require("../schemas/accountSchema");
 
+
+
 // Create a new course and save it in school schema
 const createCourse2 = async (req, res, next) => {
   try {

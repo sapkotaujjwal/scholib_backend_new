@@ -10,6 +10,8 @@ const {
 
 const { SectionNew, StudentNew } = require("../schemas/courseSchema");
 
+const mongoose = require("mongoose");
+
 const { sendMail } = require("../config/sendEmail");
 const Exam = require("../schemas/examSchema");
 const Account = require("../schemas/accountSchema");
