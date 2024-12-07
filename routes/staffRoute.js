@@ -119,6 +119,7 @@ router.get(
       success: true,
       status: "Student Get Successful",
       data: req.student,
+      courses: req.courses
     });
   }
 );

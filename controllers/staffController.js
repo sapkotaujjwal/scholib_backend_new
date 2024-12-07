@@ -240,9 +240,9 @@ async function staffUpdate(req, res, next) {
       new: true,
     });
 
-     await School.findOneAndUpdate(
+    await School.findOneAndUpdate(
       { schoolCode, "staffs._id": data._id },
-      { $set: { "staffs.$": updatedDoc } },
+      { $set: { "staffs.$": updatedDoc } }
     );
 
     req.staff = updatedDoc;
@@ -397,8 +397,9 @@ async function getAllStudents(req, res, next) {
 
       req.student = school.students;
     } else {
-      const olderData = await OlderData.findOne({ schoolCode, year });
+      const olderData = await OlderData.findOne({ schoolCode, year })
       req.student = olderData.students;
+      req.courses = olderData.courses;
     }
 
     next();

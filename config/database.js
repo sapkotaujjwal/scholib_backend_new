@@ -1,15 +1,17 @@
+// This one works for replica set and is currently being used on local development
+
 const mongoose = require("mongoose");
 
 const connectDb = async (dburi) => {
   try {
-    await mongoose.connect(`${dburi}/localServer`, {
+    await mongoose.connect(dburi, {
+      dbName: "localServer",
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log("mongodb connected successfully");
+    console.log("MongoDB connected successfully");
   } catch (error) {
-    console.log(error);
-    console.log("mongodb failed to connect");
+    console.error("MongoDB failed to connect:", error.message);
   }
 };
 
