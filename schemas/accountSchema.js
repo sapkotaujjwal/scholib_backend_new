@@ -15,7 +15,7 @@ const accountSchema = new mongoose.Schema({
   },
   paymentHistory: [
     {
-      date: Date,
+      date: String,
       time: String,
       amount: Number,
       approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },

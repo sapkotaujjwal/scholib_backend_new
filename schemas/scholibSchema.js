@@ -25,7 +25,7 @@ const scholibSchema = new mongoose.Schema({
     type: String,
   },
   createdAt: {
-    type: Date,
+    type: String,
     required: true,
     default: function () {
       const date = getDate();

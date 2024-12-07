@@ -14,7 +14,7 @@ const courseSchema = new mongoose.Schema({
     maxlength: 50,
   },
   startDate: {
-    type: Date,
+    type: String,
     default: function () {
       const date = getDate();
       return date.fullDate;

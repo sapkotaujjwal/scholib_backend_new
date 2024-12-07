@@ -54,7 +54,7 @@ const staffSchema = new mongoose.Schema({
     maxlength: [600, "About cannot exceed 600 characters"],
   },
   dob: {
-    type: Date,
+    type: String,
     required: [true, "DOB is required"],
   },
   gender: {
@@ -123,7 +123,7 @@ const staffSchema = new mongoose.Schema({
       type: String,
     },
     expiresAt: {
-      type: Date,
+      type: String,
     },
     count: {
       type: Number,

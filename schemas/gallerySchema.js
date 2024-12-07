@@ -29,7 +29,7 @@ const gallerySchema = new mongoose.Schema({
         },
       },
       date: {
-        type: Date,
+        type: String,
         required: true,
         default: function () {
           const date = getDate();

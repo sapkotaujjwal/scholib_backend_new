@@ -15,7 +15,7 @@ const libraySchema = new mongoose.Schema({
   library: [
     {
       date: {
-        type: Date,
+        type: String,
         default: function () {
           const date = getDate();
           return date.fullDate;
@@ -37,7 +37,7 @@ const libraySchema = new mongoose.Schema({
         ref: "Student",
       },
       returnDate: {
-        type: Date,
+        type: String,
         default: function () {
           const date = getDate();
           return date.year + 1;
@@ -49,7 +49,7 @@ const libraySchema = new mongoose.Schema({
         default: "Not Returned",
       },
       returnedDate: {
-        type: Date,
+        type: String,
       },
     },
   ],

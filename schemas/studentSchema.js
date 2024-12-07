@@ -13,7 +13,7 @@ const studentSchema = new mongoose.Schema({
     maxlength: [80, "Name cannot excedd 80 characters"],
   },
   dob: {
-    type: Date,
+    type: String,
     required: [true, "DOB is required"],
   },
   gender: {
@@ -240,7 +240,7 @@ const studentSchema = new mongoose.Schema({
       type: String,
     },
     expiresAt: {
-      type: Date,
+      type: String,
     },
   },
 });

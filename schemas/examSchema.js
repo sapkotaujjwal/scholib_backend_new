@@ -20,7 +20,7 @@ const ExamSchema = new mongoose.Schema({
         default: "Unpublished",
       },
       publishedDate: {
-        type: Date,
+        type: String,
       },
       subjects: [
         {
