@@ -211,11 +211,23 @@ async function getStudentFromToken(req, res) {
     const student = await Student.findOne({ _id: decodedToken.userId });
 
     if (!student) {
-      return res.status(401).send({
+      res.cookie("jwtCookie", token, {
+        httpOnly: true,
+        maxAge: 0,
+      });
+
+      res.cookie("user", "Student", {
+        httpOnly: true,
+        maxAge: 0,
+      });
+
+      res.status(401).send({
         success: false,
         status: `Student verification failed`,
         message: `Verification failed! Please login and try again..`,
       });
+
+      return false;
     }
 
     let verify = false;
@@ -284,11 +296,23 @@ async function getStaffFromToken(req, res) {
     const staff = await Staff.findOne({ _id: decodedToken.userId });
 
     if (!staff) {
-      return res.status(401).send({
+      res.cookie("jwtCookie", token, {
+        httpOnly: true,
+        maxAge: 0,
+      });
+
+      res.cookie("user", "Staff", {
+        httpOnly: true,
+        maxAge: 0,
+      });
+
+      res.status(401).send({
         success: false,
         status: `Staff verification failed`,
         message: `Verification failed! Please login and try again..`,
       });
+
+      return false;
     }
 
     let verify = false;

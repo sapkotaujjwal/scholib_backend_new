@@ -368,7 +368,7 @@ async function payFees(req, res, next) {
     const { _id, schoolCode } = req.params;
     const classId = req.query.classId;
     const amount = parseFloat(req.query.amount); // Ensure amount is a number
-    const remark = req.query.remark;
+    const remark = req.query.remark || "NULL";
 
     const year = getDate().year;
 
