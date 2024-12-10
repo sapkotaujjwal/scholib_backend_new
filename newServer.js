@@ -6,6 +6,8 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 require("dotenv").config({ path: "./config/config.env" });
 
+const http = require('http'); // Use the HTTP module instead of HTTPS
+
 const app = express();
 
 // Middlewares
@@ -45,10 +47,10 @@ const adminStudentRoute = require("./routes/adminForStudentRoute");
 // Database Connection
 
 // this one is for localhost
-connectDb(process.env.DB_URI);
+// connectDb(process.env.DB_URI);
 
 // this one is for server
-// connectDb();
+connectDb();
 
 // Routes Usage
 app.use("/mutual", mutualRoute);
@@ -75,8 +77,21 @@ const credentials = {
   cert: fs.readFileSync("./test/server.cert"), // or server.pem
 };
 
-const httpsServer = https.createServer(credentials, app);
+// for test 
 
-httpsServer.listen(process.env.PORT || 3000, () => {
-  console.log("HTTPS Server is running on port", process.env.PORT || 3000);
+
+// const httpsServer = https.createServer(credentials, app);
+
+// httpsServer.listen(process.env.PORT || 3000, () => {
+//   console.log("HTTPS Server is running on port", process.env.PORT || 3000);
+// });
+
+
+// for production 
+
+// Create an HTTP server
+const httpServer = http.createServer(app);
+
+httpServer.listen(process.env.PORT || 3000, () => {
+  console.log("HTTP Server is running on port", process.env.PORT || 3000);
 });
