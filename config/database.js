@@ -2,7 +2,7 @@
 
 const mongoose = require("mongoose");
 
-const connectDb = async (dburi= "mongodb://scholibAdmin:newPassword@65.1.1.39:27017/?replicaSet=rs0&authSource=admin") => {
+const connectDb = async (dburi= "mongodb://scholibAdmin:newPassword@3.111.220.76:27017/newServer?replicaSet=rs0&authSource=admin") => {
   try {
     await mongoose.connect(dburi, {
       dbName: "localServer",
