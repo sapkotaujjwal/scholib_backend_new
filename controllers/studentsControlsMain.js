@@ -935,17 +935,17 @@ async function deleteStudent(req, res, next) {
           students: { ...deletedStudent, removedOn: getDate().fullDate },
         },
       },
-      { new: true, upsert: true, session }
+      { new: true, upsert: true, includeResultMetadata: true,  session }
     );
 
     // If a new OlderData document was created, link it to the School
-    if (olderData && olderData.upsertedId) {
+    if (olderData && olderData.lastErrorObject.upserted) {
       await School.findOneAndUpdate(
         { schoolCode },
         {
           $push: {
             olderData: {
-              $each: [olderData._id], // Reference only the `_id`
+              $each: [olderData.value],
               $position: 0, // Add at the beginning of the array
             },
           },

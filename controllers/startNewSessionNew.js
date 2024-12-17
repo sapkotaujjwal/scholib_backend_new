@@ -873,11 +873,13 @@ const startNewSession = async (req, res, next) => {
                 courses: thatClass._id,
               },
             },
-            { new: true, upsert: true, session }
+            { new: true, upsert: true,includeResultMetadata: true, session }
           );
 
-          if (olderData && olderData.isNew) {
-            school.olderData.unshift(olderData._id);
+          
+
+          if (olderData && olderData.lastErrorObject.upserted) {
+            school.olderData.unshift(olderData.value);
           }
         }
       }
@@ -914,6 +916,8 @@ const startNewSession = async (req, res, next) => {
                 )
               );
 
+              // olderData Job over here 
+
               const olderData = await OlderData.findOneAndUpdate(
                 { schoolCode, year },
                 {
@@ -933,6 +937,9 @@ const startNewSession = async (req, res, next) => {
               if (olderData && olderData.lastErrorObject.upserted) {
                 school.olderData.unshift(olderData.value);
               }
+
+
+              // olderData Job Ends here 
 
               school.students = school.students.filter(
                 (stu) =>
