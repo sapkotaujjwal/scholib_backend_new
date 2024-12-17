@@ -4,15 +4,11 @@ const Staff = require("../schemas/staffSchema");
 const bcrypt = require("bcrypt");
 const Gallery = require("../schemas/gallerySchema");
 const Update = require("../schemas/updateSchema");
-const { CourseNew } = require("../schemas/courseSchema");
 const Account = require("../schemas/accountSchema");
-const Exam = require("../schemas/examSchema");
 const Company = require("../schemas/companySchema");
 const { photoWork } = require("../config/photoWork");
 const Library = require("../schemas/librarySchema");
 const { sendMail } = require("../config/sendEmail");
-
-
 
 // scholib signin
 const signinController = async (req, res, next) => {
@@ -63,211 +59,6 @@ const loginController = async (req, res, next) => {
 };
 
 //my new create new school with admin
-
-// const createSchoolWithAdmin = async (req, res, next) => {
-//   try {
-//     const Maindata = req.body;
-
-//     Maindata.admin = JSON.parse(Maindata.admin);
-//     Maindata.school = JSON.parse(Maindata.school);
-//     Maindata.staff = JSON.parse(Maindata.staff);
-
-//     const school = Maindata.school;
-//     school.images = [];
-
-//     const company = await Company.findOne({ _id: process.env.COMPANY_ID });
-
-//     if (req.files && req.files["logo"]) {
-//       school.logo = await photoWork(req.files["logo"][0]);
-//     }
-
-//     if (req.files && req.files["principlePhoto"]) {
-//       school.principle.image = await photoWork(req.files["principlePhoto"][0]);
-//     }
-
-//     if (req.files && req.files["images"]) {
-//       for (const file of req.files["images"]) {
-//         const photo = await photoWork(file);
-//         const image = {
-//           blurHash: photo.blurHash,
-//           secure_url: photo.secure_url,
-//           public_id: photo.public_id,
-//           height: photo.height,
-//           width: photo.width,
-//         };
-//         school.images.push(image);
-//       }
-//     }
-
-//     //saving school to the database
-//     const data = new School(school);
-//     req.school = await data.save();
-//     const schoolCode = req.school.schoolCode;
-
-//     const galleyObj = {
-//       schoolCode,
-//     };
-//     const accountObj = {
-//       schoolCode,
-//     };
-//     const updateObj = {
-//       schoolCode,
-//     };
-//     const libraryObj = {
-//       schoolCode,
-//       library: [],
-//     };
-
-//     const gallery = new Gallery(galleyObj);
-//     const account = new Account(accountObj);
-//     const update = new Update(updateObj);
-//     const library = new Library(libraryObj);
-
-//     await gallery.save();
-//     await account.save();
-//     await update.save();
-//     await library.save();
-
-//     company.noOfSchools++;
-
-//     const schoolString = `${req.school.schoolCode} ${req.school.name} ${
-//       req.school.sName
-//     } ${req.school.address.split(" ")[0]}`;
-
-//     const newSchoolObj = {
-//       info: schoolString,
-//       schoolCode: req.school.schoolCode,
-//     };
-
-//     company.schools.push(newSchoolObj);
-//     await company.save();
-
-//     const schoolFind = await School.findOne({ schoolCode });
-
-//     const adminData = req.body.staff;
-//     adminData.schoolCode = schoolCode;
-//     adminData.tokens = [];
-
-//     if (req.files["pPhoto"]) {
-//       adminData.pPhoto = await photoWork(req.files["pPhoto"][0]);
-//     }
-
-//     function generateOTP() {
-//       const characters = "0123456789abcdefghijklmnopqrstuvwxyz";
-//       let otp = "";
-//       for (let i = 0; i < 8; i++) {
-//         otp += characters[Math.floor(Math.random() * characters.length)];
-//       }
-//       return otp;
-//     }
-
-//     let tempPass = generateOTP();
-//     adminData.password = tempPass;
-
-//     const newStaff = new Staff(adminData);
-//     const createdStaff = await newStaff.save();
-
-//     schoolFind.staffs.push(createdStaff);
-//     const schoolRetrived = await schoolFind.save();
-
-//     const mailOptions = {
-//       from: process.env.EMAIL_ID1,
-//       to: createdStaff.email,
-//       subject: `Scholib account created || Login to ${schoolRetrived.name}`,
-//       html: `
-//     <!DOCTYPE html>
-//     <html lang="en">
-//     <head>
-//     <meta charset="UTF-8">
-//     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-//     <title>School account created </title>
-//     <style>
-//         body {
-//             font-family: Arial, sans-serif;
-//             background-color: #f4f4f4;
-//             margin: 0;
-//             padding: 0;
-//         }
-//         .container {
-//             max-width: 600px;
-//             margin: 20px auto;
-//             background-color: #ffffff;
-//             padding: 20px;
-//             border-radius: 10px;
-//             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-//         }
-//         .header {
-//             text-align: center;
-//             background-color: #4CAF50;
-//             padding: 10px;
-//             border-radius: 10px 10px 0 0;
-//         }
-//         .header h1 {
-//             margin: 0;
-//             color: #ffffff;
-//         }
-//         .content {
-//             padding: 20px;
-//         }
-//         .content p {
-//             font-size: 16px;
-//             line-height: 1.6;
-//             color: #333333;
-//         }
-//         .login-details {
-//             background-color: #f9f9f9;
-//             padding: 10px;
-//             border: 1px solid #dddddd;
-//             border-radius: 5px;
-//             margin-top: 20px;
-//         }
-//         .footer {
-//             text-align: center;
-//             font-size: 14px;
-//             color: #777777;
-//             margin-top: 20px;
-//         }
-//     </style>
-// </head>
-// <body>
-//     <div class="container">
-//         <div class="header">
-//             <h1>Welcome to Scholib!</h1>
-//         </div>
-//         <div class="content">
-//             <p>Dear ${createdStaff.name},</p>
-//             <p>Your scholib account has been created. Now you can login to your school through the following credentials</p>
-//             <p>Visit scholib.com and login through the following credentials</p>
-//             <div class="login-details">
-//                 <p><strong>School Code:</strong> ${schoolRetrived.schoolCode}</p>
-//                 <p><strong>Login ID:</strong> ${createdStaff.loginId}</p>
-//                 <p><strong>Password:</strong> ${tempPass}</p>
-//             </div>
-//             <p>Please keep this information secure and do not share it with anyone.</p>
-//             <p>Best regards,<br>Scholib.com</p>
-//         </div>
-//         <div class="footer">
-//             <p>&copy; 2024 Scholib.com. All rights reserved.</p>
-//         </div>
-//     </div>
-// </body>
-// </html>
-
-//       `,
-//     };
-
-//     sendMail(mailOptions);
-
-//     next();
-//   } catch (e) {
-//     console.log(e);
-//     return res.status(400).send({
-//       success: false,
-//       status: "School Creation Failed",
-//       message: e.message,
-//     });
-//   }
-// };
 
 const createSchoolWithAdmin = async (req, res, next) => {
   try {
@@ -331,10 +122,7 @@ const createSchoolWithAdmin = async (req, res, next) => {
     };
 
     const createdStaff = await new Staff(adminData).save();
-    await School.updateOne(
-      { schoolCode },
-      { $push: { staffs: createdStaff } }
-    );
+    await School.updateOne({ schoolCode }, { $push: { staffs: createdStaff } });
 
     sendWelcomeEmail(createdStaff, req.school, adminData.password);
 

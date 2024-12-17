@@ -8,8 +8,7 @@ const Exam = require("../schemas/examSchema");
 const { sendMail } = require("../config/sendEmail");
 const { CourseNew, SectionNew } = require("../schemas/courseSchema");
 const Account = require("../schemas/accountSchema");
-
-
+const Company = require("../schemas/companySchema");
 
 // Create a new course and save it in school schema
 const createCourse2 = async (req, res, next) => {
@@ -1118,6 +1117,17 @@ const updateSchool = async (req, res, next) => {
     if (!updatedSchool) {
       throw new Error("Failed to update the school");
     }
+
+    await Company.updateOne(
+      { "schools.schoolCode": schoolCode },
+      {
+        $set: {
+          "schools.$.info": `${schoolCode} ${schoolData.name} ${
+            schoolData.sName
+          } ${schoolData.address.split(" ")[0]}`,
+        },
+      }
+    );
 
     req.school = updatedSchool;
 
