@@ -17,7 +17,11 @@ const createCourse2 = async (req, res, next) => {
     const data = req.body;
 
     if (data.fees.find((dat) => dat.amount < 0)) {
-      throw new Error("No fee amount can be less than 0");
+      return res.status(400).send({
+        success: false,
+        status: "Negative Fee",
+        message: "Fee shouldn't be negative",
+      });
     }
 
     // add the object to the course
@@ -53,7 +57,7 @@ const updateCourseNext = async (req, res, next) => {
         dat.next &&
         dat.class.toString() === dat.name.toString()
       ) {
-        throw new Error("Wrong");
+        throw new Error("Something Went Wrong")
       }
     });
 

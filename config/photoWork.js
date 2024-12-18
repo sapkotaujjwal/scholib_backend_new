@@ -106,6 +106,8 @@ async function deleteImage(key) {
     //   }
     // );
 
+    // This one is for the s3 bucket
+
     const params = {
       Bucket: bucketName,
       Key: key,

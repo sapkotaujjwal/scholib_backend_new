@@ -58,7 +58,7 @@ const sectionSchema = new mongoose.Schema({
     required: true,
   },
   name: String,
-  workingDates: [Date],
+  workingDates: [String],
   sectionId: {
     type: String,
   },
@@ -90,13 +90,13 @@ const studentSchema = new mongoose.Schema({
       roll: String,
       absentDays: [
         {
-          date: { type: Date, default: getDate().fullDate },
+          date: { type: String, default: getDate().fullDate },
           reason: { type: String, default: "unknown" },
         },
       ],
       discount: [
         {
-          date: Date,
+          date: String,
           approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
           amount: { type: Number, min: 0 },
           remark: { type: String, maxlength: 1000 },
@@ -104,7 +104,7 @@ const studentSchema = new mongoose.Schema({
       ],
       fine: [
         {
-          date: Date,
+          date: String,
           approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
           amount: { type: Number, min: 0 },
           remark: { type: String, maxlength: 1000 },
@@ -113,7 +113,7 @@ const studentSchema = new mongoose.Schema({
       previousLeft: { type: Number, default: 0 },
       paymentHistory: [
         {
-          date: Date,
+          date: String,
           time: String,
           amount: Number,
           approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
@@ -123,7 +123,7 @@ const studentSchema = new mongoose.Schema({
       ],
       library: [
         {
-          date: Date,
+          date: String,
           book: {
             type: String,
             required: [true, "Book Name is required"],
@@ -132,20 +132,20 @@ const studentSchema = new mongoose.Schema({
             maxlength: [100, "Book Name cannot exceed 80 characters"],
           },
           approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
-          returnDate: Date,
+          returnDate: String,
           status: {
             type: String,
             enum: ["Returned", "Not Returned"],
             default: "Not Returned",
           },
-          returnedDate: Date,
+          returnedDate: String,
         },
       ],
       bus: [
         {
           place: String,
-          start: Date,
-          end: Date,
+          start: String,
+          end: String,
         },
       ],
     },
