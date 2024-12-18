@@ -1474,6 +1474,31 @@ const updateAndAcceptAdmission = async (req, res, next) => {
   }
 };
 
+// Update particular student exam info
+// updateParticularStudentMarks
+
+async function updateParticularStudentMarks(req, res, next) {
+
+  try {
+
+    throw new Error("failed")
+    const { _id, schoolCode } = req.params;
+    const data = req.body;
+
+    console.log("Api Hit Successful");
+
+    next();
+  } catch (error) {
+
+    console.error("Error updating exam info", error.message);
+    return res.status(500).send({
+      success: false,
+      status: "Failed to update exam info",
+      message: error.message,
+    });
+  }
+}
+
 module.exports = {
   getStudentFromCourse,
   startBusService,
@@ -1493,4 +1518,5 @@ module.exports = {
   takeAttendance,
   deleteAdmission,
   getStudentExamInfo,
+  updateParticularStudentMarks,
 };
