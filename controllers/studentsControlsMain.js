@@ -935,7 +935,7 @@ async function deleteStudent(req, res, next) {
           students: { ...deletedStudent, removedOn: getDate().fullDate },
         },
       },
-      { new: true, upsert: true, includeResultMetadata: true,  session }
+      { new: true, upsert: true, includeResultMetadata: true, session }
     );
 
     // If a new OlderData document was created, link it to the School
@@ -1475,21 +1475,40 @@ const updateAndAcceptAdmission = async (req, res, next) => {
 };
 
 // Update particular student exam info
-// updateParticularStudentMarks
-
 async function updateParticularStudentMarks(req, res, next) {
-
   try {
-
-    throw new Error("failed")
     const { _id, schoolCode } = req.params;
+    const { examId, termIndex } = req.query;
+    const studentId = _id;
     const data = req.body;
 
-    console.log("Api Hit Successful");
+    for (const subjectData of data) {
+      await Exam.updateOne(
+        {
+          _id: examId,
+          schoolCode,
+          [`term.${termIndex}.subjects._id`]: subjectData.subjectId,
+          [`term.${termIndex}.subjects.students.student`]: studentId,
+        },
+        {
+          $set: {
+            [`term.${termIndex}.subjects.$[subject].students.$[student].obtainedMarks`]:
+              subjectData.obtainedMarks,
+            [`term.${termIndex}.subjects.$[subject].students.$[student].obtainedMarks2`]:
+              subjectData.obtainedMarks2,
+          },
+        },
+        {
+          arrayFilters: [
+            { "subject._id": subjectData.subjectId },
+            { "student.student": studentId },
+          ],
+        }
+      );
+    }
 
     next();
   } catch (error) {
-
     console.error("Error updating exam info", error.message);
     return res.status(500).send({
       success: false,
