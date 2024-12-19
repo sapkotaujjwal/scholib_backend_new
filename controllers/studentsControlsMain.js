@@ -760,14 +760,16 @@ async function takeAttendance(req, res, next) {
     }).select("workingDates");
 
     // Convert each date in sectionInfo.workingDates to a string (YYYY-MM-DD) and check if today's date exists
+
+
     const isDateInArray = sectionInfo.workingDates.some((date) => {
-      const formattedDate = date.toISOString().split("T")[0]; // Format the Mongoose Date object as YYYY-MM-DD
+      const formattedDate = date; 
       return formattedDate === today;
     });
 
     if (!isDateInArray) {
       // Convert today's string to a Date object before adding
-      sectionInfo.workingDates.push(new Date(today));
+      sectionInfo.workingDates.push(today);
       await sectionInfo.save();
     }
 
