@@ -118,12 +118,14 @@ const staffSchema = new mongoose.Schema({
     default: "Worker",
   },
 
+    // here otp is Date for a reason
+    
   otp: {
     otp: {
       type: String,
     },
     expiresAt: {
-      type: String,
+      type: Date,
     },
     count: {
       type: Number,

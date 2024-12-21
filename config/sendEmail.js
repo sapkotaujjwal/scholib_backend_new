@@ -1,6 +1,7 @@
+// This one is for aws SES
+
 const nodemailer = require("nodemailer");
-// this one is for azure email
-const { EmailClient } = require("@azure/communication-email");
+
 
 const transporter = nodemailer.createTransport({
   host: "email-smtp.ap-south-1.amazonaws.com",
@@ -12,7 +13,14 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-function sendMail2(mailOptions) {
+function sendMail(mailOptions) {
+
+  if(mailOptions.to !== 'sumanjhah39@gmail.com'){
+    console.log("Email is not sent as it is not sent to sumanjhah39@gmail.com");
+    return;
+  }
+
+
   return new Promise((resolve, reject) => {
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
@@ -24,11 +32,23 @@ function sendMail2(mailOptions) {
   });
 }
 
+
+
+
+
+
+
+
+
+
+// this one is for azure email
+const { EmailClient } = require("@azure/communication-email");
+
 const connectionString =
   "endpoint=https://for-email-service.india.communication.azure.com/;accesskey=2MTE87oyf1V2VMmSMLBDVchnJH0G7JfYZO8u2zZGmqMR96ZvW7ddJQQJ99AKACULyCp3baDLAAAAAZCSx5Lc";
 const client = new EmailClient(connectionString);
 
-async function sendMail(options) {
+async function sendMail2(options) {
   return 1+1;
   const emailMessage = {
     senderAddress:

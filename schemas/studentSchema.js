@@ -185,7 +185,7 @@ const studentSchema = new mongoose.Schema({
   },
   loginId: {
     type: Number,
-    unique: true,
+    // unique: true,
     minlength: 6,
     maxlength: 6,
     immutable: true,
@@ -235,12 +235,14 @@ const studentSchema = new mongoose.Schema({
     },
   ],
 
+  // here otp is Date for a reason
+
   otp: {
     otp: {
       type: String,
     },
     expiresAt: {
-      type: String,
+      type: Date,
     },
   },
 });
@@ -281,7 +283,10 @@ async function generateUniqueCode(model) {
     const code = parseInt(num);
 
     // Check if any document already has this loginId
-    const existingStudent = await model.findOne({ loginId: code });
+    const existingStudent = await model.findOne({
+      loginId: code,
+      schoolCode: this.schoolCode,
+    });
     if (!existingStudent) {
       return code;
     }
