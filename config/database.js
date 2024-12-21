@@ -8,7 +8,7 @@ const connectDb = async (
 ) => {
   try {
     await mongoose.connect(dburi, {
-      dbName: "newServer",
+      dbName: "newServer2",
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });

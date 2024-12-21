@@ -88,7 +88,7 @@ const staffSchema = new mongoose.Schema({
   },
   loginId: {
     type: Number,
-    unique: true,
+    // unique: true,
     minlength: 6,
     maxlength: 6,
     immutable: true,
@@ -118,7 +118,7 @@ const staffSchema = new mongoose.Schema({
     default: "Worker",
   },
 
-    // here otp is Date for a reason
+    // here expiresAt is Date for a reason
     
   otp: {
     otp: {
@@ -175,13 +175,15 @@ staffSchema.pre("save", async function (next) {
 });
 
 // Method to generate a unique 6-digit code
-async function generateUniqueCode(model) {
+async function generateUniqueCode(model, schoolCode) {
   while (true) {
     const num = Math.floor(100000 + Math.random() * 900000).toString(); // Generate a 6-digit number
     const code = parseInt(num);
 
     // Check if the generated code already exists in the entire collection
-    const existingStaff = await model.findOne({ loginId: code });
+    const existingStaff = await model.findOne({ loginId: code, schoolCode });
+
+
     if (!existingStaff) {
       return code; // Return the unique code if it doesn't exist
     }
