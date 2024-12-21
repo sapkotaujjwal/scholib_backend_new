@@ -5,7 +5,6 @@ const { School } = require("../schemas/schoolSchema");
 
 const { StudentNew, SectionNew } = require("../schemas/courseSchema");
 
-
 // Here review these codes they kind of have some issues
 
 //update student
@@ -127,6 +126,14 @@ async function getStudentInfoFromCourse(req, res, next) {
       { schoolCode, "students._id": _id },
       { "students.$": 1 }
     );
+
+    if (school.students.length === 0) {
+      return res.status(400).send({
+        success: false,
+        status: "Unaccessible",
+        message: "You have already exited from the school",
+      });
+    }
 
     const sectionId = school.students[0].course.section;
 
