@@ -391,31 +391,28 @@ async function payFees(req, res, next) {
     // Start the transaction
     session.startTransaction();
 
-    // Perform updates concurrently
-    const [studentUpdateResult, accountUpdateResult] = await Promise.all([
-      // Update the student's payment history
-      StudentNew.findOneAndUpdate(
-        {
-          studentId: _id,
-          schoolCode,
-          "session.courseId": classId,
+    // Update the student's payment history
+    const studentUpdateResult = await StudentNew.findOneAndUpdate(
+      {
+        studentId: _id,
+        schoolCode,
+        "session.courseId": classId,
+      },
+      {
+        $push: { "session.$.paymentHistory": objToAdd },
+      },
+      { session, new: true }
+    );
+    // Update the school's account payment history
+    const accountUpdateResult = await Account.findOneAndUpdate(
+      { schoolCode, year },
+      {
+        $push: {
+          paymentHistory: objToAdd,
         },
-        {
-          $push: { "session.$.paymentHistory": objToAdd },
-        },
-        { session, new: true }
-      ),
-      // Update the school's account payment history
-      Account.findOneAndUpdate(
-        { schoolCode, year },
-        {
-          $push: {
-            paymentHistory: objToAdd,
-          },
-        },
-        { session, new: true, upsert: true }
-      ),
-    ]);
+      },
+      { session, new: true, upsert: true }
+    );
 
     // Validate results
     if (!studentUpdateResult) {
@@ -761,9 +758,8 @@ async function takeAttendance(req, res, next) {
 
     // Convert each date in sectionInfo.workingDates to a string (YYYY-MM-DD) and check if today's date exists
 
-
     const isDateInArray = sectionInfo.workingDates.some((date) => {
-      const formattedDate = date; 
+      const formattedDate = date;
       return formattedDate === today;
     });
 

@@ -1,8 +1,6 @@
 const { getDate } = require("./nepaliDate");
 
 function calculateStudentFee(a, b, c, d) {
-
-
   function findCourseFee(a1, b1) {
     let totalAmt = 0;
 
@@ -18,9 +16,9 @@ function calculateStudentFee(a, b, c, d) {
       totalAmt = totalAmt - elem.amount;
     });
 
-    b1.paymentHistory.forEach((elem)=>{
+    b1.paymentHistory.forEach((elem) => {
       totalAmt = totalAmt - elem.amount;
-    })
+    });
 
     return totalAmt;
   }
@@ -32,16 +30,30 @@ function calculateStudentFee(a, b, c, d) {
     date2 = "2080-01-01"
   ) {
     const getDaysDifference = (date2, date1) => {
-      const oneDay = 24 * 60 * 60 * 1000;
+      // Helper function to parse a date string
+      const parseDate = (dateString) => {
+        let splitString = dateString.includes("/") ? "/" : "-";
 
-      const firstDate = new Date(date1);
-      const secondDate = new Date(date2);
+        let [year, month, day] = dateString.split(splitString).map(Number);
 
-      firstDate.setHours(0, 0, 0, 0);
-      secondDate.setHours(0, 0, 0, 0);
+        // If the day is above 30, set it to 30
+        if (day > 30) {
+          day = 30;
+        }
 
-      const timeDifference = firstDate.getTime() - secondDate.getTime();
-      const daysDifference = Math.round(timeDifference / oneDay);
+        return { year, month, day };
+      };
+
+      // Parse and normalize the dates
+      const d1 = parseDate(date1);
+      const d2 = parseDate(date2);
+
+      // Convert everything into "days" assuming each month has 30 days
+      const totalDays1 = d1.year * 360 + (d1.month - 1) * 30 + d1.day;
+      const totalDays2 = d2.year * 360 + (d2.month - 1) * 30 + d2.day;
+
+      // Calculate the difference in days
+      const daysDifference = totalDays1 - totalDays2;
 
       return daysDifference;
     };
@@ -54,13 +66,13 @@ function calculateStudentFee(a, b, c, d) {
 
       if (priceItem) {
         const { amounts } = priceItem;
-        let startDate = new Date(start);
+        let startDate = start;
 
         if (getDaysDifference(startDate, date2) > 0) {
           startDate = date2;
         }
 
-        let endDate = end ? new Date(end) : new Date(date);
+        let endDate = end ? end : date;
 
         amounts.forEach((each) => {
           let daysdif = getDaysDifference(each.date, endDate);
