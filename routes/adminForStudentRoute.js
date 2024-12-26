@@ -266,6 +266,7 @@ router.get(
       success: true,
       status: "Request Successful",
       message: "Book added successfully",
+      data: req.data,
     });
   }
 );

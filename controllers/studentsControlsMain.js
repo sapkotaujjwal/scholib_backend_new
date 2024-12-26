@@ -479,7 +479,7 @@ async function addBook(req, res, next) {
       returnDate,
       status: "Not Returned",
     };
-    await StudentNew.findOneAndUpdate(
+    const updatedStudent = await StudentNew.findOneAndUpdate(
       {
         studentId: _id,
         schoolCode,
@@ -487,8 +487,11 @@ async function addBook(req, res, next) {
       },
       {
         $push: { "session.$.library": objToAdd },
-      }
+      },
+      { new: true }
     );
+
+    req.data = updatedStudent;
 
     next();
   } catch (e) {

@@ -87,21 +87,6 @@ const findSchoolCourses = async (req, res, next) => {
   try {
     const schoolCode = parseInt(req.params.schoolCode);
 
-    // const courses = await School.findOne({ schoolCode }).populate({
-    //   path: "course2",
-    //   populate: {
-    //     path: "groups",
-    //     populate: {
-    //       path: "sections",
-    //       select: "-students",
-    //     },
-    //   },
-    // });
-
-    // req.courses = {
-    //   course: courses.course2,
-    // };
-
     const courses = await CourseNew.find({ schoolCode }).populate({
       path: "groups",
       populate: {
