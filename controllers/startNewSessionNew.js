@@ -505,6 +505,9 @@ const startNewSession = async (req, res, next) => {
 
     await school.save({ session });
 
+
+
+    // throw new Error("Not Wanting To Save Currently");
     await session.commitTransaction();
 
     next();

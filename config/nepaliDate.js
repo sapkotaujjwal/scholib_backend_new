@@ -41,6 +41,7 @@ function getDate() {
     const nepalTime = new Date(utcDate.getTime() + (5 * 60 + 45) * 60000);
 
     const formattedNepalDate = nepalTime.toISOString().split("T")[0];
+
     const nepaliDateStr = adToBs(formattedNepalDate);
 
     const nepaliYear = parseInt(nepaliDateStr.split("-")[0]);

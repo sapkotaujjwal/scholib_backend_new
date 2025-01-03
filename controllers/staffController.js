@@ -397,7 +397,7 @@ async function getAllStudents(req, res, next) {
 
       req.student = school.students;
     } else {
-      const olderData = await OlderData.findOne({ schoolCode, year })
+      const olderData = await OlderData.findOne({ schoolCode, year });
       req.student = olderData.students;
       req.courses = olderData.courses;
     }
