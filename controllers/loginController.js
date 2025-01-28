@@ -16,11 +16,12 @@ const {
 
 // student/staff login
 const loginController = async (req, res, next) => {
+
   try {
     //student login
 
-    if (req.body.student) {
-      const { schoolCode, loginId, password } = req.body.student;
+    if (req.body.role === 'Student') {
+      const { schoolCode, loginId, password } = req.body;
 
       const student = await Student.findOne({ schoolCode, loginId });
 
@@ -48,8 +49,8 @@ const loginController = async (req, res, next) => {
     }
 
     //staff login
-    else if (req.body.staff) {
-      const { schoolCode, loginId, password } = req.body.staff;
+    else if (req.body.role === 'Staff') {
+      const { schoolCode, loginId, password } = req.body;
       const staff = await Staff.findOne({ schoolCode, loginId });
 
       if (!staff) {

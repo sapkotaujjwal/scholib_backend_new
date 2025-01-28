@@ -115,6 +115,61 @@ const startNewSession = async (req, res, next) => {
       throw new Error("School or Course not found");
     }
 
+    {
+      // olderData Job Starts here
+
+      const studentsToAdd = school.students.filter((std) => {
+        const thatCourse = tempCourse.find(
+          (crc) => crc._id.toString() === std.course.class.toString()
+        );
+        if (!thatCourse) {
+          throw new Error(
+            "Course not found for that student with _id : " + std._id
+          );
+        }
+
+        if (classesList.includes(thatCourse.courseId)) {
+          return std;
+        }
+      });
+
+      const coursesToAdd = school.course2.filter((crc) => {
+        const thatCourse = tempCourse.find(
+          (crc2) => crc2._id.toString() === crc._id.toString()
+        );
+
+        if (!thatCourse) {
+          throw new Error(" : Course not found");
+        }
+
+        if (classesList.includes(thatCourse.courseId)) {
+          return crc._id;
+        }
+      });
+
+      const olderData = await OlderData.findOneAndUpdate(
+        { schoolCode, year },
+        {
+          $push: {
+            students: { $each: studentsToAdd },
+            courses: coursesToAdd,
+          },
+        },
+        {
+          new: true,
+          upsert: true,
+          includeResultMetadata: true,
+          session,
+        }
+      );
+
+      if (olderData && olderData.lastErrorObject.upserted) {
+        school.olderData.unshift(olderData.value);
+      }
+
+      // olderData Job Ends here
+    }
+
     for (const crc of school.course) {
       const crcIdStr = crc._id.toString();
 
@@ -347,23 +402,6 @@ const startNewSession = async (req, res, next) => {
               );
             }
           }
-
-          let studentsToDelete = [];
-
-          const olderData = await OlderData.findOneAndUpdate(
-            { schoolCode, year },
-            {
-              $push: {
-                students: { $each: studentsToDelete },
-                courses: thatClass._id,
-              },
-            },
-            { new: true, upsert: true, includeResultMetadata: true, session }
-          );
-
-          if (olderData && olderData.lastErrorObject.upserted) {
-            school.olderData.unshift(olderData.value);
-          }
         }
       }
 
@@ -398,30 +436,6 @@ const startNewSession = async (req, res, next) => {
                   )
                 )
               );
-
-              // olderData Job over here
-
-              const olderData = await OlderData.findOneAndUpdate(
-                { schoolCode, year },
-                {
-                  $push: {
-                    students: { $each: studentsToDelete },
-                    courses: crc2._id,
-                  },
-                },
-                {
-                  new: true,
-                  upsert: true,
-                  includeResultMetadata: true,
-                  session,
-                }
-              );
-
-              if (olderData && olderData.lastErrorObject.upserted) {
-                school.olderData.unshift(olderData.value);
-              }
-
-              // olderData Job Ends here
 
               school.students = school.students.filter(
                 (stu) =>
@@ -504,8 +518,6 @@ const startNewSession = async (req, res, next) => {
     }
 
     await school.save({ session });
-
-
 
     // throw new Error("Not Wanting To Save Currently");
     await session.commitTransaction();

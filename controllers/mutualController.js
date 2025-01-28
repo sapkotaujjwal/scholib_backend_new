@@ -361,7 +361,7 @@ async function changePasswordFromOtp(req, res, next) {
       user.password = password;
       user.tokens = [];
 
-      delete user.otp;
+      user.otp = {};
     } else {
       user.otp.count++;
       await user.save();

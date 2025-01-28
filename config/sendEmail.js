@@ -20,6 +20,8 @@ function sendMail(mailOptions) {
     return;
   }
 
+  return;
+
 
   return new Promise((resolve, reject) => {
     transporter.sendMail(mailOptions, (error, info) => {
