@@ -110,6 +110,7 @@ const createSchoolWithAdmin = async (req, res, next) => {
         req.school.address.split(" ")[0]
       }`,
       schoolCode,
+      domain: req.school.domain,
     });
     await company.save();
 

@@ -41,6 +41,14 @@ async function generateTokenStudent(req, res, next) {
       secure: true,
     });
 
+    res.cookie("name", req.user.name, {
+      httpOnly: false,
+      // domain: process.env.DOMAIN,
+      sameSite: "None",
+      secure: true,
+      maxAge: 36000000, // Cookie expiration time (10 hrs)
+    });
+
     const device = req.headers["user-agent"];
     tokenObject = {
       device,
@@ -51,10 +59,9 @@ async function generateTokenStudent(req, res, next) {
       new: true,
     });
 
-    if(next){
+    if (next) {
       next();
     }
-
 
     // next();
   } catch (e) {
@@ -81,12 +88,29 @@ async function generateTokenStaff(req, res, next) {
       maxAge: 36000000, // Cookie expiration time (10 hrs)
     });
     res.cookie("user", "Staff", {
-      httpOnly: true,
+      // httpOnly: true,
       // domain: process.env.DOMAIN,
       sameSite: "None",
       secure: true,
       maxAge: 36000000, // Cookie expiration time (10 hrs)
     });
+
+    res.cookie("name", req.user.name, {
+      httpOnly: true, // Cookie can only be accessed by the server
+      secure: false, // Use HTTPS in production
+      sameSite: "None", // Allow cross-site requests (for subdomains)
+      maxAge: 36000000, // 10 hours expiration time
+      domain: ".scholib.com", // Share cookie across subdomains
+    });
+
+    res.cookie("role", req.user.role, {
+      // httpOnly: true,
+      // domain: process.env.DOMAIN,
+      sameSite: "None",
+      secure: true,
+      maxAge: 36000000, // Cookie expiration time (10 hrs)
+    });
+
     const device = req.headers["user-agent"];
     tokenObject = {
       device,
@@ -97,10 +121,9 @@ async function generateTokenStaff(req, res, next) {
       new: true,
     });
 
-    if(next){
+    if (next) {
       next();
     }
-
 
     // next();
   } catch (e) {

@@ -579,6 +579,10 @@ const schoolSchema = new mongoose.Schema({
     maxlength: 6,
     immutable: true,
   },
+
+  domain: {
+    type: String,
+  },
 });
 
 // Pre-save hook

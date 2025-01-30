@@ -154,6 +154,9 @@ const companySchema = new mongoose.Schema({
           return date.fullDate;
         },
       },
+      domain: {
+        type: String,
+      },
     },
   ],
 });
