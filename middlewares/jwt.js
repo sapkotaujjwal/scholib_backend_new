@@ -24,29 +24,30 @@ async function generateTokenStudent(req, res, next) {
     });
 
     res.cookie("jwtCookie", token, {
-      httpOnly: true,
-      // domain: process.env.DOMAIN,
+      domain: process.env.DOMAIN,
       maxAge: 2592000000,
 
-      // domain: process.env.DOMAIN,
+      httpOnly: true,
       sameSite: "None",
       secure: true,
     });
 
     res.cookie("user", "Student", {
-      httpOnly: true,
-      // domain: process.env.DOMAIN,
+      domain: process.env.DOMAIN,
       maxAge: 2592000000,
+
+      httpOnly: true,
       sameSite: "None",
       secure: true,
     });
 
     res.cookie("name", req.user.name, {
+      domain: process.env.DOMAIN,
+      maxAge: 2592000000,
+
       httpOnly: false,
-      // domain: process.env.DOMAIN,
       sameSite: "None",
       secure: true,
-      maxAge: 36000000, // Cookie expiration time (10 hrs)
     });
 
     const device = req.headers["user-agent"];
@@ -81,34 +82,34 @@ async function generateTokenStaff(req, res, next) {
       expiresIn: "10h",
     });
     res.cookie("jwtCookie", token, {
+      domain: process.env.DOMAIN,
+      maxAge: 36000000,
       httpOnly: true,
-      // domain: process.env.DOMAIN,
       sameSite: "None",
       secure: true,
-      maxAge: 36000000, // Cookie expiration time (10 hrs)
     });
     res.cookie("user", "Staff", {
-      // httpOnly: true,
-      // domain: process.env.DOMAIN,
+      domain: process.env.DOMAIN,
+      maxAge: 36000000,
+      httpOnly: false,
       sameSite: "None",
       secure: true,
-      maxAge: 36000000, // Cookie expiration time (10 hrs)
     });
 
     res.cookie("name", req.user.name, {
-      httpOnly: true, // Cookie can only be accessed by the server
-      secure: false, // Use HTTPS in production
-      sameSite: "None", // Allow cross-site requests (for subdomains)
-      maxAge: 36000000, // 10 hours expiration time
-      domain: ".scholib.com", // Share cookie across subdomains
+      domain: process.env.DOMAIN,
+      maxAge: 36000000,
+      httpOnly: false,
+      sameSite: "None",
+      secure: true,
     });
 
     res.cookie("role", req.user.role, {
-      // httpOnly: true,
-      // domain: process.env.DOMAIN,
+      domain: process.env.DOMAIN,
+      maxAge: 36000000,
+      httpOnly: false,
       sameSite: "None",
       secure: true,
-      maxAge: 36000000, // Cookie expiration time (10 hrs)
     });
 
     const device = req.headers["user-agent"];

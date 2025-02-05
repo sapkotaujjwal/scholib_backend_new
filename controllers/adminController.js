@@ -57,7 +57,7 @@ const updateCourseNext = async (req, res, next) => {
         dat.next &&
         dat.class.toString() === dat.name.toString()
       ) {
-        throw new Error("Something Went Wrong")
+        throw new Error("Something Went Wrong");
       }
     });
 
@@ -1025,6 +1025,7 @@ const updateSchool = async (req, res, next) => {
       policies,
       studentsTaught,
       leftImages,
+      domain,
     } = JSON.parse(req.body.school);
 
     const schoolData = {
@@ -1048,6 +1049,7 @@ const updateSchool = async (req, res, next) => {
       text3,
       policies,
       studentsTaught,
+      domain,
     };
 
     schoolData.images = [];
@@ -1129,6 +1131,7 @@ const updateSchool = async (req, res, next) => {
           "schools.$.info": `${schoolCode} ${schoolData.name} ${
             schoolData.sName
           } ${schoolData.address.split(" ")[0]}`,
+          "schools.$.domain": schoolData.domain, // Updating domain field
         },
       }
     );

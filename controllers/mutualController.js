@@ -27,19 +27,35 @@ async function changePassword(req, res, next) {
     }
 
     if (!user1) {
-      res.cookie("jwtCookie", "token", {
-        httpOnly: true,
+      res.cookie("jwtCookie", token, {
+        domain: process.env.DOMAIN,
         maxAge: 0,
+        httpOnly: true,
+        sameSite: "None",
+        secure: true,
       });
-      res.cookie("user", "Student", {
-        httpOnly: true,
+      res.cookie("user", "Staff", {
+        domain: process.env.DOMAIN,
         maxAge: 0,
+        httpOnly: false,
+        sameSite: "None",
+        secure: true,
       });
 
-      return res.status(403).send({
-        success: false,
-        status: "Verification failed",
-        message: "Your token is invalid!!",
+      res.cookie("name", req.user.name, {
+        domain: process.env.DOMAIN,
+        maxAge: 0,
+        httpOnly: false,
+        sameSite: "None",
+        secure: true,
+      });
+
+      res.cookie("role", req.user.role, {
+        domain: process.env.DOMAIN,
+        maxAge: 0,
+        httpOnly: false,
+        sameSite: "None",
+        secure: true,
       });
     }
 

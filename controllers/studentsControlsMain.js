@@ -1519,6 +1519,26 @@ async function updateParticularStudentMarks(req, res, next) {
   }
 }
 
+// Update particular student exam info
+async function getSectionStudentsInfo(req, res, next) {
+  try {
+    const { section, schoolCode } = req.params;
+
+    req.data = await SectionNew.findOne({ _id: section, schoolCode }).populate(
+      "students"
+    );
+
+    next();
+  } catch (error) {
+    console.error("Error updating exam info", error.message);
+    return res.status(500).send({
+      success: false,
+      status: "Failed to update exam info",
+      message: error.message,
+    });
+  }
+}
+
 module.exports = {
   getStudentFromCourse,
   startBusService,
@@ -1539,4 +1559,5 @@ module.exports = {
   deleteAdmission,
   getStudentExamInfo,
   updateParticularStudentMarks,
+  getSectionStudentsInfo,
 };

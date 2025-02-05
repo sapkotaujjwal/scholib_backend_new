@@ -25,7 +25,8 @@ const {
   getAllStudentsFromCourse,
   takeAttendance,
   getStudentExamInfo,
-  updateParticularStudentMarks
+  updateParticularStudentMarks,
+  getSectionStudentsInfo,
 } = require("../controllers/studentsControlsMain");
 
 //middlewares
@@ -326,11 +327,10 @@ router.get(
     res.status(200).send({
       success: true,
       status: "Exam Info Found",
-      data: req.exam
+      data: req.exam,
     });
   }
 );
-
 
 // Update particular student exam marks
 router.post(
@@ -343,6 +343,21 @@ router.post(
       success: true,
       status: "Marks Updated",
       message: "Exam info updated successfully",
+    });
+  }
+);
+
+// Get students details of a class
+router.get(
+  "/:schoolCode/account/:section",
+  verifySchoolStaff,
+  checkAdmin,
+  getSectionStudentsInfo,
+  (req, res) => {
+    res.status(200).send({
+      success: true,
+      status: "Successfully get students details",
+      data: req.data.students,
     });
   }
 );

@@ -2,7 +2,6 @@
 
 const nodemailer = require("nodemailer");
 
-
 const transporter = nodemailer.createTransport({
   host: "email-smtp.ap-south-1.amazonaws.com",
   port: 465,
@@ -14,14 +13,10 @@ const transporter = nodemailer.createTransport({
 });
 
 function sendMail(mailOptions) {
-
-  if(mailOptions.to !== 'sumanjhah39@gmail.com'){
+  if (mailOptions.to !== "sumanjhah39@gmail.com") {
     console.log("Email is not sent as it is not sent to sumanjhah39@gmail.com");
     return;
   }
-
-  return;
-
 
   return new Promise((resolve, reject) => {
     transporter.sendMail(mailOptions, (error, info) => {
@@ -34,15 +29,6 @@ function sendMail(mailOptions) {
   });
 }
 
-
-
-
-
-
-
-
-
-
 // this one is for azure email
 const { EmailClient } = require("@azure/communication-email");
 
@@ -51,7 +37,7 @@ const connectionString =
 const client = new EmailClient(connectionString);
 
 async function sendMail2(options) {
-  return 1+1;
+  return 1 + 1;
   const emailMessage = {
     senderAddress:
       // options.from ||
