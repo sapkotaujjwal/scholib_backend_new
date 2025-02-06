@@ -13,8 +13,8 @@ const transporter = nodemailer.createTransport({
 });
 
 function sendMail(mailOptions) {
-  if (mailOptions.to !== "sumanjhah39@gmail.com") {
-    console.log("Email is not sent as it is not sent to sumanjhah39@gmail.com");
+  if (mailOptions.to !== "ujjwalint22@gmail.com") {
+    console.log("Email is not sent as it is not sent to ujjwalint22@gmail.com");
     return;
   }
 
@@ -28,6 +28,9 @@ function sendMail(mailOptions) {
     });
   });
 }
+
+
+
 
 // this one is for azure email
 const { EmailClient } = require("@azure/communication-email");

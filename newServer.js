@@ -6,7 +6,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 require("dotenv").config({ path: "./config/config.env" });
 
-const http = require('http'); // Use the HTTP module instead of HTTPS
+const http = require("http");
 
 const app = express();
 
@@ -18,12 +18,11 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Setting up CORS
 const corsOptions = {
   origin: [
-    process.env.ORIGIN1,
-    process.env.ORIGIN2,
-    process.env.ORIGIN3,
-    process.env.ORIGIN4,
-    process.env.ORIGIN5,
-    process.env.ORIGIN6,
+    "http://localhost:3001",
+    "http://192.168.1.100:3001",
+    "https://scholib.com",
+    "https://portal.scholib.com",
+    "https://register.scholib.com",
   ],
   credentials: true,
 };
@@ -39,17 +38,10 @@ const adminRoute = require("./routes/adminRoute");
 const mutualRoute = require("./routes/mutualRoute");
 const staffRoute = require("./routes/staffRoute");
 const studentRoute = require("./routes/studentRoutes");
-
 const adminStudentRoute = require("./routes/adminForStudentRoute");
 
-// All Configs
-
-// Database Connection
-
-// this one is for localhost
 connectDb(process.env.DB_URI);
 
-// this one is for server
 // connectDb();
 
 // Routes Usage
@@ -77,8 +69,7 @@ const credentials = {
   cert: fs.readFileSync("./test/server.cert"), // or server.pem
 };
 
-// for test 
-
+// for test
 
 const httpsServer = https.createServer(credentials, app);
 
@@ -86,8 +77,7 @@ httpsServer.listen(process.env.PORT || 3000, () => {
   console.log("HTTPS Server is running on port", process.env.PORT || 3000);
 });
 
-
-// for production 
+// for production
 
 // Create an HTTP server
 // const httpServer = http.createServer(app);

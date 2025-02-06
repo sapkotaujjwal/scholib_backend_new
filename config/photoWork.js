@@ -3,7 +3,6 @@ const sharp = require("sharp");
 const fs = require("fs");
 const path = require("path");
 const { encode } = require("blurhash");
-const cloudinary = require("./cloudinary");
 
 const {
   S3Client,
@@ -125,14 +124,6 @@ async function photoWork(photo) {
   try {
     const photoFile = photo;
     const compressedImage = await imageCompressor(photoFile.path);
-
-    // const result = await cloudinary.uploader.upload(
-    //   compressedImage.compressedImagePath,
-    //   {
-    //     quality: "auto:best",
-    //     fetch_format: "auto",
-    //   }
-    // );
 
     const result = await uploadImage(
       photo.filename,

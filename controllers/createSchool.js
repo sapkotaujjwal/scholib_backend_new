@@ -10,58 +10,14 @@ const { photoWork } = require("../config/photoWork");
 const Library = require("../schemas/librarySchema");
 const { sendMail } = require("../config/sendEmail");
 
-// scholib signin
-const signinController = async (req, res, next) => {
-  try {
-    const user = req.body;
-    const data = new Scholib(user);
-    req.user = await data.save();
-    next();
-  } catch (error) {
-    res.status(500).send({
-      success: false,
-      status: "Creation failed",
-      message: error.message,
-    });
-  }
-};
-
-// scholib login
-const loginController = async (req, res, next) => {
-  try {
-    const { loginId, password } = req.body.admin;
-    const user = await Scholib.findOne({ loginId });
-    if (!user) {
-      return res.status(401).send({
-        success: false,
-        status: "Authentication failed",
-        message: "Scholib member has his/her credentials wrong",
-      });
-    }
-    const hashedPassword = user.password;
-    const passwordMatch = await bcrypt.compare(password, hashedPassword);
-    if (passwordMatch) {
-      next();
-    } else {
-      return res.status(401).send({
-        success: false,
-        status: "Authentication failed",
-        message: "Scholib member has his/her credentials wrong",
-      });
-    }
-  } catch (error) {
-    res.status(500).send({
-      success: false,
-      status: "Authentication failed",
-      message: error.message,
-    });
-  }
-};
-
 //my new create new school with admin
 
 const createSchoolWithAdmin = async (req, res, next) => {
+  const session = await mongoose.startSession();
+
   try {
+    await session.startTransaction();
+
     const Maindata = {
       admin: JSON.parse(req.body.admin),
       school: JSON.parse(req.body.school),
@@ -72,7 +28,7 @@ const createSchoolWithAdmin = async (req, res, next) => {
     school.images = [];
 
     const [company, logo, principlePhoto, images, pPhoto] = await Promise.all([
-      Company.findById(process.env.COMPANY_ID),
+      Company.findById(process.env.COMPANY_ID).session(session),
       req.files?.logo ? photoWork(req.files.logo[0]) : null,
       req.files?.principlePhoto ? photoWork(req.files.principlePhoto[0]) : null,
       req.files?.images ? Promise.all(req.files.images.map(photoWork)) : [],
@@ -93,17 +49,19 @@ const createSchoolWithAdmin = async (req, res, next) => {
     }
 
     const newSchool = new School(school);
-    req.school = await newSchool.save();
+    req.school = await newSchool.save({ session });
 
     const schoolCode = req.school.schoolCode;
 
-    await Promise.all([
-      new Gallery({ schoolCode }).save(),
-      new Account({ schoolCode }).save(),
-      new Update({ schoolCode }).save(),
-      new Library({ schoolCode, library: [] }).save(),
+    // Create associated documents within the transaction
+    const [gallery, account, update, library] = await Promise.all([
+      new Gallery({ schoolCode }).save({ session }),
+      new Account({ schoolCode }).save({ session }),
+      new Update({ schoolCode }).save({ session }),
+      new Library({ schoolCode, library: [] }).save({ session }),
     ]);
 
+    // Update company information
     company.noOfSchools++;
     company.schools.push({
       info: `${schoolCode} ${req.school.name} ${req.school.sName} ${
@@ -112,8 +70,9 @@ const createSchoolWithAdmin = async (req, res, next) => {
       schoolCode,
       domain: req.school.domain,
     });
-    await company.save();
+    await company.save({ session });
 
+    // Create staff/admin
     const adminData = {
       ...Maindata.staff,
       schoolCode,
@@ -122,19 +81,35 @@ const createSchoolWithAdmin = async (req, res, next) => {
       pPhoto: pPhoto || null,
     };
 
-    const createdStaff = await new Staff(adminData).save();
-    await School.updateOne({ schoolCode }, { $push: { staffs: createdStaff } });
+    const createdStaff = await new Staff(adminData).save({ session });
 
+    // Update school with staff
+    await School.updateOne(
+      { schoolCode },
+      { $push: { staffs: createdStaff } },
+      { session }
+    );
+
+    // Commit the transaction
+    await session.commitTransaction();
+
+    // Send welcome email after successful transaction
     sendWelcomeEmail(createdStaff, req.school, adminData.password);
 
     next();
   } catch (e) {
+    // Abort the transaction on error
+    await session.abortTransaction();
+
     console.error(e);
     res.status(400).send({
       success: false,
       status: "School Creation Failed",
       message: e.message,
     });
+  } finally {
+    // End the session
+    session.endSession();
   }
 };
 
@@ -218,6 +193,8 @@ const findCompany = async (req, res, next) => {
   }
 };
 
+// ***************** These ones are just here i am not using them so enjoying coding these things **************
+
 // create scholib info
 const createCompany = async (req, res, next) => {
   try {
@@ -298,6 +275,54 @@ async function updateCompany(req, res, next) {
     });
   }
 }
+
+// scholib signin
+const signinController = async (req, res, next) => {
+  try {
+    const user = req.body;
+    const data = new Scholib(user);
+    req.user = await data.save();
+    next();
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      status: "Creation failed",
+      message: error.message,
+    });
+  }
+};
+
+// scholib login
+const loginController = async (req, res, next) => {
+  try {
+    const { loginId, password } = req.body.admin;
+    const user = await Scholib.findOne({ loginId });
+    if (!user) {
+      return res.status(401).send({
+        success: false,
+        status: "Authentication failed",
+        message: "Scholib member has his/her credentials wrong",
+      });
+    }
+    const hashedPassword = user.password;
+    const passwordMatch = await bcrypt.compare(password, hashedPassword);
+    if (passwordMatch) {
+      next();
+    } else {
+      return res.status(401).send({
+        success: false,
+        status: "Authentication failed",
+        message: "Scholib member has his/her credentials wrong",
+      });
+    }
+  } catch (error) {
+    res.status(500).send({
+      success: false,
+      status: "Authentication failed",
+      message: error.message,
+    });
+  }
+};
 
 module.exports = {
   signinController,

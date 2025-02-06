@@ -1,19 +1,16 @@
-// This one works for replica set and is currently being used on local development
-
 const mongoose = require("mongoose");
 const Company = require("../schemas/companySchema");
 
 const connectDb = async (
-  dburi = "mongodb://scholibAdmin:newPassword@3.111.220.76:27017/newServer?replicaSet=rs0&authSource=admin"
+  dburi = "mongodb://scholibAdmin:newPassword@3.111.220.76:27017?replicaSet=rs0&authSource=admin"
 ) => {
   try {
     await mongoose.connect(dburi, {
-      dbName: "newServer2",
+      dbName: "scholib",
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
 
-    // check for company
     let company = await Company.find();
 
     if (Array.isArray(company) && company.length === 0) {
@@ -61,7 +58,6 @@ const connectDb = async (
     }
 
     console.log("MongoDB Connected");
-
 
   } catch (error) {
     console.error("MongoDB failed to connect:", error.message);
