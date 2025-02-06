@@ -870,31 +870,6 @@ async function studentProfileUpdate(req, res, next) {
   }
 }
 
-// ***************** below here are not optimized and are all old codes ************************
-
-// Suspend student from school this one is okay but i am not sure will i ever use it or  not basically it is a part of the code but i am not using it anywhere so yupe nothing much
-async function suspendStudent(req, res, next) {
-  try {
-    const { schoolCode, _id } = req.params;
-    const student = await Student.findOne({ _id, schoolCode });
-
-    student.status = "suspended";
-    req.student = await student.save();
-
-    await School.findOneAndUpdate(
-      { schoolCode, "students._id": _id },
-      { $set: { "students.$": req.student } }
-    );
-
-    next();
-  } catch (e) {
-    return res.status(500).send({
-      success: false,
-      status: "Student failed to suspend",
-      message: e.message,
-    });
-  }
-}
 
 // *************************** Here i have a basic level of modification and they works but i guess there is a space for more *************************
 
@@ -1547,7 +1522,6 @@ module.exports = {
   studentProfileUpdate,
   updateAndAcceptAdmission,
   acceptAdmission,
-  suspendStudent,
   deleteStudent,
   addFine,
   addDiscount,

@@ -9,6 +9,7 @@ const Company = require("../schemas/companySchema");
 const { photoWork } = require("../config/photoWork");
 const Library = require("../schemas/librarySchema");
 const { sendMail } = require("../config/sendEmail");
+const mongoose = require("mongoose");
 
 //my new create new school with admin
 
@@ -16,7 +17,7 @@ const createSchoolWithAdmin = async (req, res, next) => {
   const session = await mongoose.startSession();
 
   try {
-    await session.startTransaction();
+    session.startTransaction();
 
     const Maindata = {
       admin: JSON.parse(req.body.admin),

@@ -14,7 +14,6 @@ const {
   deleteAdmission,
   updateAndAcceptAdmission,
   acceptAdmission,
-  suspendStudent,
   deleteStudent,
   addFine,
   addDiscount,
@@ -102,21 +101,6 @@ router.put(
     res.status(200).send({
       success: true,
       status: "Student updated and admitted successfully",
-    });
-  }
-);
-
-// Suspend student from school
-router.delete(
-  "/:schoolCode/student/suspend/:_id",
-  verifySchoolStaff,
-  checkAdmin,
-  suspendStudent,
-  (req, res) => {
-    res.status(200).send({
-      success: true,
-      status: "Student Suspended",
-      message: "Student has been suspended successfully",
     });
   }
 );

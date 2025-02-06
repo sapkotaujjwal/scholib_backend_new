@@ -147,24 +147,26 @@ const startNewSession = async (req, res, next) => {
         }
       });
 
-      const olderData = await OlderData.findOneAndUpdate(
-        { schoolCode, year },
-        {
-          $push: {
-            students: { $each: studentsToAdd },
-            courses: coursesToAdd,
+      if (coursesToAdd.length > 0) {
+        const olderData = await OlderData.findOneAndUpdate(
+          { schoolCode, year },
+          {
+            $push: {
+              students: { $each: studentsToAdd },
+              courses: coursesToAdd,
+            },
           },
-        },
-        {
-          new: true,
-          upsert: true,
-          includeResultMetadata: true,
-          session,
-        }
-      );
+          {
+            new: true,
+            upsert: true,
+            includeResultMetadata: true,
+            session,
+          }
+        );
 
-      if (olderData && olderData.lastErrorObject.upserted) {
-        school.olderData.unshift(olderData.value);
+        if (olderData && olderData.lastErrorObject.upserted) {
+          school.olderData.unshift(olderData.value);
+        }
       }
 
       // olderData Job Ends here

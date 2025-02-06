@@ -16,26 +16,25 @@ const connectDb = async (
     if (Array.isArray(company) && company.length === 0) {
       let ourCompany = new Company({
         _id: "6682b2b28051d8ae2f37cb05",
-        name: "Scholib Tech Pvt. Ltd",
-        url: "https://www.scholib.com",
+        name: "Scholib Tech",
+        url: "https://scholib.com",
         logo: {
           blurHash: "sampleBlurHash",
-          secure_url:
-            "https://res.cloudinary.com/dodvbotgd/image/upload/v1728286440/ppchehqmfsci6rejuoqm.jpg",
+          secure_url: "https://scholib.com/images/logo.png",
           public_id: "samplePublicID",
           height: "100",
           width: "200",
         },
         phone: [9806014021],
-        email: ["admin@scholib.com"],
+        email: ["contact@scholib.com"],
         location: "BUddhashanti 2 Budhabare Jhapa",
         coordinates: "40.7128° N, 74.0060° W",
         social: {
           facebook: "https://www.facebook.com/samplecompany",
-          twitter: "https://twitter.com/samplecompany",
-          instagram: "https://www.instagram.com/samplecompany",
-          youtube: "https://www.youtube.com/samplecompany",
-          linkedIn: "https://www.linkedin.com/company/samplecompany",
+          twitter: "https://twitter.com/scholib",
+          instagram: "https://www.instagram.com/scholib.official",
+          youtube: "https://www.youtube.com/@scholib",
+          linkedIn: "https://www.linkedin.com/scholib",
         },
         usedBy: 0,
         noOfSchools: 0,
@@ -58,7 +57,6 @@ const connectDb = async (
     }
 
     console.log("MongoDB Connected");
-
   } catch (error) {
     console.error("MongoDB failed to connect:", error.message);
   }

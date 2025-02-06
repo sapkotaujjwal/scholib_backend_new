@@ -184,7 +184,7 @@ const schoolSchema = new mongoose.Schema({
     quote: {
       type: String,
       minlength: 2,
-      maxlength: 120,
+      maxlength: 3000,
       default: "Quality education is our motto",
     },
     name: {
