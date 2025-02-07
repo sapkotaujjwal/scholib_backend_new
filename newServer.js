@@ -40,9 +40,9 @@ const staffRoute = require("./routes/staffRoute");
 const studentRoute = require("./routes/studentRoutes");
 const adminStudentRoute = require("./routes/adminForStudentRoute");
 
-connectDb(process.env.DB_URI);
+// connectDb(process.env.DB_URI);
 
-// connectDb();
+connectDb();
 
 // Routes Usage
 app.use("/mutual", mutualRoute);

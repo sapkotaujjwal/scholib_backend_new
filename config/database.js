@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const Company = require("../schemas/companySchema");
 
 const connectDb = async (
-  dburi = "mongodb://scholibAdmin:newPassword@3.111.220.76:27017?replicaSet=rs0&authSource=admin"
+  dburi = "mongodb://scholibAdmin:newPassword@13.126.105.115:27017?replicaSet=rs0&authSource=admin"
 ) => {
   try {
     await mongoose.connect(dburi, {

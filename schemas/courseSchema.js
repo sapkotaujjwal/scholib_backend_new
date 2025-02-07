@@ -22,7 +22,7 @@ const courseSchema = new mongoose.Schema({
   },
   seatsAvailable: {
     type: Number,
-    required: true,
+    // required: true,
     default: 999,
   },
   courseId: {
