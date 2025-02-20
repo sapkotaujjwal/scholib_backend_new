@@ -19,6 +19,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const corsOptions = {
   origin: [
     "http://localhost:3001",
+    "http://192.168.1.100:5500",
     "http://192.168.1.100:3001",
     "https://scholib.com",
     "https://portal.scholib.com",
@@ -40,9 +41,9 @@ const staffRoute = require("./routes/staffRoute");
 const studentRoute = require("./routes/studentRoutes");
 const adminStudentRoute = require("./routes/adminForStudentRoute");
 
-// connectDb(process.env.DB_URI);
+connectDb(process.env.DB_URI);
 
-connectDb();
+// connectDb();
 
 // Routes Usage
 app.use("/mutual", mutualRoute);

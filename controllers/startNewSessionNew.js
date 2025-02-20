@@ -361,11 +361,13 @@ const startNewSession = async (req, res, next) => {
                   );
 
                   if (studentInSchool) {
+
+
                     studentInSchool.course = {
                       class: newCourse._id,
-                      group: groups.find((grp) => grp.name === group1.name)._id,
+                      group: groups.find((grp) => grp.name.toUpperCase() === group1.name.toUpperCase())._id,
                       section: sections.find(
-                        (sec) => sec.name === section1.name
+                        (sec) => sec.name.toUpperCase() === section1.name.toUpperCase()
                       )._id,
                     };
                   }
