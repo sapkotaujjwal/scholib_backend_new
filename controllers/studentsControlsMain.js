@@ -155,7 +155,7 @@ async function addFine(req, res, next) {
     const { _id, schoolCode } = req.params;
     const classId = req.query.classId;
     const fineAmount = req.query.fineAmount;
-    const remark = req.query.remark;
+    const remark = req.query.remark || 'N/A';
 
     if (fineAmount < 0) {
       throw new Error("Fine cannot be less than 0");
@@ -200,7 +200,7 @@ async function addDiscount(req, res, next) {
 
     const classId = req.query.classId;
     const discountAmount = req.query.discountAmount;
-    const remark = req.query.remark;
+    const remark = req.query.remark || 'N/A';
 
     if (discountAmount < 0) {
       throw new Error("Discount cannot be less than 0");
@@ -365,6 +365,8 @@ async function payFees(req, res, next) {
   const session = await mongoose.startSession();
 
   try {
+    // Start the transaction
+    session.startTransaction();
     const { _id, schoolCode } = req.params;
     const classId = req.query.classId;
     const amount = parseFloat(req.query.amount); // Ensure amount is a number
@@ -387,9 +389,6 @@ async function payFees(req, res, next) {
       method: "Cash",
       student: _id,
     };
-
-    // Start the transaction
-    session.startTransaction();
 
     // Update the student's payment history
     const studentUpdateResult = await StudentNew.findOneAndUpdate(
@@ -869,7 +868,6 @@ async function studentProfileUpdate(req, res, next) {
     });
   }
 }
-
 
 // *************************** Here i have a basic level of modification and they works but i guess there is a space for more *************************
 
