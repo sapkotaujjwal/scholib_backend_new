@@ -257,47 +257,47 @@ async function staffUpdate(req, res, next) {
 }
 
 // here this one is messy i don't know what is happening here
-async function studentsAttendance(req, res, next) {
-  try {
-    const staff = req.staff;
-    const data = req.body;
+// async function studentsAttendance(req, res, next) {
+//   try {
+//     const staff = req.staff;
+//     const data = req.body;
 
-    if (req.files && req.files["pPhoto"]) {
-      for (const file of req.files["pPhoto"]) {
-        const photo = await photoWork(file);
-        const image = {
-          blurHash: photo.blurHash,
-          secure_url: photo.secure_url,
-          public_id: photo.public_id,
-          height: photo.height,
-          width: photo.width,
-        };
-        data.pPhoto = image;
-      }
-    }
+//     if (req.files && req.files["pPhoto"]) {
+//       for (const file of req.files["pPhoto"]) {
+//         const photo = await photoWork(file);
+//         const image = {
+//           blurHash: photo.blurHash,
+//           secure_url: photo.secure_url,
+//           public_id: photo.public_id,
+//           height: photo.height,
+//           width: photo.width,
+//         };
+//         data.pPhoto = image;
+//       }
+//     }
 
-    delete data.status;
-    delete data.loginId;
-    delete data.password;
-    delete data.role;
-    delete data.salary;
-    delete data.paymentHistory;
-    delete data.absentDays;
-    delete data.tokens;
+//     delete data.status;
+//     delete data.loginId;
+//     delete data.password;
+//     delete data.role;
+//     delete data.salary;
+//     delete data.paymentHistory;
+//     delete data.absentDays;
+//     delete data.tokens;
 
-    staff.set(data);
+//     staff.set(data);
 
-    req.staff = await staff.save();
+//     req.staff = await staff.save();
 
-    next();
-  } catch (e) {
-    return res.status(500).send({
-      success: false,
-      status: `Password updation failed`,
-      message: e.message,
-    });
-  }
-}
+//     next();
+//   } catch (e) {
+//     return res.status(500).send({
+//       success: false,
+//       status: `Password updation failed`,
+//       message: e.message,
+//     });
+//   }
+// }
 
 // get a particular student
 async function getStudent(req, res, next) {
@@ -496,7 +496,7 @@ module.exports = {
   editUpdate,
   createUpdate,
   staffUpdate,
-  studentsAttendance,
+  // studentsAttendance,
   getStudent,
   getAllStudents,
   getAllStaffs,

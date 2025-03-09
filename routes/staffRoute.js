@@ -7,7 +7,7 @@ const {
   editUpdate,
   createUpdate,
   staffUpdate,
-  studentsAttendance,
+  // studentsAttendance,
   getStudent,
   getAllStudents,
   getAllStaffs,
@@ -97,17 +97,17 @@ router.put(
 );
 
 //student attendance
-router.post(
-  "/:schoolCode/students/attendance",
-  verifySchoolStaff,
-  studentsAttendance,
-  (req, res) => {
-    res.status(200).send({
-      success: true,
-      message: "Attendance taken successfully",
-    });
-  }
-);
+// router.post(
+//   "/:schoolCode/students/attendance",
+//   verifySchoolStaff,
+//   studentsAttendance,
+//   (req, res) => {
+//     res.status(200).send({
+//       success: true,
+//       message: "Attendance taken successfully",
+//     });
+//   }
+// );
 
 // Get all students
 router.get(

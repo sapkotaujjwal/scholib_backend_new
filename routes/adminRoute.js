@@ -208,6 +208,7 @@ router.post(
       success: true,
       status: "Bus Route Added",
       message: "Bus Route has been Added successfully",
+      data: req.data,
     });
   }
 );

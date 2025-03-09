@@ -659,6 +659,8 @@ const addBusRoute = async (req, res, next) => {
       { new: true }
     );
 
+    req.data = updatedSchool.busFee;
+
     if (!updatedSchool) {
       throw new Error("School not found or unable to update bus routes.");
     }
@@ -1049,7 +1051,7 @@ const updateSchool = async (req, res, next) => {
       text3,
       policies,
       studentsTaught,
-      domain,
+      domain: domain.replace(/^https?:\/\//, ""),
     };
 
     schoolData.images = [];

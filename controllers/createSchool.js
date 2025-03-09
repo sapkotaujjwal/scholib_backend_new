@@ -25,6 +25,14 @@ const createSchoolWithAdmin = async (req, res, next) => {
       staff: JSON.parse(req.body.staff),
     };
 
+    // Remove http:// or https:// from mainData.school.domain
+    if (Maindata.school?.domain) {
+      Maindata.school.domain = Maindata.school.domain.replace(
+        /^https?:\/\//,
+        ""
+      );
+    }
+
     const { school } = Maindata;
     school.images = [];
 
