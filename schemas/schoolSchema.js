@@ -453,18 +453,18 @@ const schoolSchema = new mongoose.Schema({
                   subject: {
                     type: String,
                   },
-                  teacher: {
-                    _id: {
-                      type: mongoose.Schema.Types.ObjectId,
-                      ref: "Staff",
-                    },
-                    name: {
-                      type: String,
-                    },
-                    title: {
-                      type: String,
-                    },
-                  },
+                  // teacher: {
+                  //   _id: {
+                  //     type: mongoose.Schema.Types.ObjectId,
+                  //     ref: "Staff",
+                  //   },
+                  //   name: {
+                  //     type: String,
+                  //   },
+                  //   title: {
+                  //     type: String,
+                  //   },
+                  // },
                 },
               ],
             },

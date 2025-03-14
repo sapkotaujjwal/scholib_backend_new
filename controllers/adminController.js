@@ -320,6 +320,7 @@ async function staffProfileUpdate(req, res, next) {
 
     const updatedDoc = await Staff.findByIdAndUpdate({ _id }, data, {
       new: true,
+      runValidators: true,
     });
 
     await School.findOneAndUpdate(
@@ -594,6 +595,8 @@ const updateBusRoute = async (req, res, next) => {
     const { schoolCode, _id } = req.params;
     const data = req.body;
 
+  
+
     const updatedSchool = await School.findOneAndUpdate(
       { schoolCode, "busFee._id": _id },
       {
@@ -602,14 +605,16 @@ const updateBusRoute = async (req, res, next) => {
         },
         $push: {
           "busFee.$.amounts": {
-            $each: [
-              { date: getDate().fullDate, amount: parseInt(data.amount) },
-            ],
+            $each: [{ date: getDate().fullDate, amount: parseInt(data.amount) }],
             $position: 0,
           },
         },
-      }
+      },
+      { new: true, projection: { busFee: 1, _id: 0 } } // Return only busFee, exclude _id
     );
+    
+
+    req.data = updatedSchool.busFee;
 
     if (!updatedSchool) {
       throw new Error("Something went wrong");

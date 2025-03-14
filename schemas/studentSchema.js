@@ -50,7 +50,7 @@ const studentSchema = new mongoose.Schema({
     },
   },
   phone: {
-    type: Number,
+    type: String,
     required: true,
     minlength: 10,
     maxlength: 10,
@@ -161,7 +161,7 @@ const studentSchema = new mongoose.Schema({
     maxlength: [80, `Mother's Name cannot excedd 80 characters`],
   },
   phone2: {
-    type: Number,
+    type: String,
     minlength: 10,
     maxlength: 10,
   },

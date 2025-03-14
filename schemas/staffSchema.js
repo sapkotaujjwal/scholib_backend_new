@@ -30,7 +30,7 @@ const staffSchema = new mongoose.Schema({
     },
   },
   phone: {
-    type: Number,
+    type: String,
     required: true,
     minlength: 10,
     maxlength: 10,

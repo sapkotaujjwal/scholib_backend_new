@@ -826,6 +826,7 @@ async function studentProfileUpdate(req, res, next) {
     // Update the student document
     const updatedStudent = await Student.findOneAndUpdate({ _id }, data, {
       new: true,
+      runValidators: true,
       session,
     });
 

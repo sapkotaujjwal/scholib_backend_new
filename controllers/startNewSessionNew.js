@@ -196,7 +196,6 @@ const startNewSession = async (req, res, next) => {
                   sectionId: section._id.toString(),
                   subjects: section.subjects.map((subject) => ({
                     subject: subject.subject,
-                    teacher: subject.teacher._id,
                   })),
                 });
                 await newSection.save({ session });
@@ -480,7 +479,7 @@ const startNewSession = async (req, res, next) => {
                     sectionId: section._id.toString(),
                     subjects: section.subjects.map((subject) => ({
                       subject: subject.subject,
-                      teacher: subject.teacher._id,
+                      teacher: subject.teacher?._id ?? null,
                     })),
                   });
                   await newSection.save({ session });

@@ -193,6 +193,7 @@ router.put(
       success: true,
       status: "Bus Route Updated",
       message: "Bus route has been updated successfully",
+      data: req.data
     });
   }
 );
