@@ -72,17 +72,17 @@ const credentials = {
 
 // for test
 
-const httpsServer = https.createServer(credentials, app);
+// const httpsServer = https.createServer(credentials, app);
 
-httpsServer.listen(process.env.PORT || 3000, () => {
-  console.log("HTTPS Server is running on port", process.env.PORT || 3000);
-});
+// httpsServer.listen(process.env.PORT || 3000, () => {
+//   console.log("HTTPS Server is running on port", process.env.PORT || 3000);
+// });
 
 // for production
 
 // Create an HTTP server
-// const httpServer = http.createServer(app);
+const httpServer = http.createServer(app);
 
-// httpServer.listen(process.env.PORT || 3000, () => {
-//   console.log("HTTP Server is running on port", process.env.PORT || 3000);
-// });
+httpServer.listen(process.env.PORT || 3000, () => {
+  console.log("HTTP Server is running on port", process.env.PORT || 3000);
+});
