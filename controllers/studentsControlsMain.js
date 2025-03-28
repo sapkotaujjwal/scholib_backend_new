@@ -16,10 +16,511 @@ const { sendMail } = require("../config/sendEmail");
 const Exam = require("../schemas/examSchema");
 const Account = require("../schemas/accountSchema");
 
+//Update and Accept School Admission
+const updateAndAcceptAdmission = async (req, res, next) => {
+  try {
+    const { schoolCode, _id } = req.params;
+
+    const school = await School.findOne({ schoolCode }).populate({
+      path: "course2",
+      populate: {
+        path: "groups",
+        populate: {
+          path: "sections",
+          populate: {
+            path: "students",
+          },
+        },
+      },
+    });
+    if (!school) {
+      return res.status(404).send({
+        success: false,
+        status: "School not found",
+        message: `The school you are looking for isn't found. Try checking your schoolCode `,
+      });
+    }
+
+    if (!school.admissions.find((adm) => adm._id.toString() == _id)) {
+      throw new Error("Student is not in waiting...");
+    }
+
+    const studentData = JSON.parse(req.body.student);
+    const bus = studentData.bus;
+    studentData.status = "active";
+
+    //some checkups
+    studentData.schoolCode = schoolCode;
+    delete studentData.year;
+    delete studentData.amount;
+    delete studentData.scholarship;
+    delete studentData.paymentHistory;
+    delete studentData.result;
+    delete studentData.absentdays;
+    delete studentData.library;
+    delete studentData.scholib;
+    delete studentData.tokens;
+
+    delete studentData.bus;
+
+    // some photo works
+
+    if (req.files["photo1"]) {
+      studentData.photo1 = await photoWork(req.files["photo1"][0]);
+    }
+
+    if (req.files["photo2"]) {
+      studentData.photo2 = await photoWork(req.files["photo2"][0]);
+    }
+
+    if (req.files["photo3"]) {
+      studentData.photo3 = await photoWork(req.files["photo3"][0]);
+    }
+
+    if (req.files["photo4"]) {
+      studentData.photo4 = await photoWork(req.files["photo4"][0]);
+    }
+
+    // here in studentData i have to check for the nearest place from the school and add the bus fee here in studentData.bus.location and studentData.bus.amount
+
+    const busPlace = school.busFee.map((obj) => {
+      return obj.location.toString() === bus;
+    });
+
+    if (busPlace && busPlace.loaction) {
+      studentData.bus = [
+        {
+          place: busPlace.location,
+          start: getDate().fullDate,
+        },
+      ];
+    }
+
+    function generateOTP() {
+      const characters = "0123456789abcdefghijklmnopqrstuvwxyz";
+      let otp = "";
+      for (let i = 0; i < 8; i++) {
+        otp += characters[Math.floor(Math.random() * characters.length)];
+      }
+      return otp;
+    }
+
+    let tempPass = generateOTP();
+    studentData.password = tempPass;
+
+    let student = await Student.findOne({ _id, schoolCode });
+
+    Object.assign(student, studentData);
+    let updatedDoc1 = await student.save();
+
+    if (!updatedDoc1) {
+      return res.status(404).send({
+        success: false,
+        status: "Student not found",
+        message: "The student you are looking for doesn't exists",
+      });
+    }
+
+    const mailOptions = {
+      from: process.env.EMAIL_ID1,
+      to: updatedDoc1.email,
+      subject: `Scholib account created || Login to ${school.name}`,
+      html: `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School account created </title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            background-color: #4CAF50;
+            padding: 10px;
+            border-radius: 10px 10px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            color: #ffffff;
+        }
+        .content {
+            padding: 20px;
+        }
+        .content p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333333;
+        }
+        .login-details {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #dddddd;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            color: #777777;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Welcome to Scholib!</h1>
+        </div>
+        <div class="content">
+            <p>Dear ${updatedDoc1.name},</p>
+            <p>Your scholib account has been created. Now you can login to your school through the following credentials</p>
+            <p>Visit scholib.com and login through the following credentials</p>
+            <div class="login-details">
+                <p><strong>School Code:</strong> ${school.schoolCode}</p>
+                <p><strong>Login ID:</strong> ${updatedDoc1.loginId}</p>
+                <p><strong>Password:</strong> ${tempPass}</p>
+            </div>
+            <p>Please keep this information secure and do not share it with anyone.</p>
+            <p>Best regards,<br>Scholib.com</p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2024 Scholib.com. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+      `,
+    };
+
+    sendMail(mailOptions);
+
+    let updatedDoc = JSON.parse(JSON.stringify(updatedDoc1));
+
+    const courseId = updatedDoc.course.class;
+    const groupId = updatedDoc.course.group;
+
+    const course = school.course2;
+
+    // Find the course with the provided courseId
+    const selectedCourse = course.find(
+      (crc) => crc.courseId.toString() === courseId
+    );
+    if (!selectedCourse) {
+      throw new Error("Course not found");
+    }
+
+    // Find the group with the provided groupId
+    const selectedGroup = selectedCourse.groups.find(
+      (grp) => grp.groupId.toString() === groupId
+    );
+    if (!selectedGroup) {
+      throw new Error("Group not found");
+    }
+
+    // Get all sections from the selected group
+    const allSections = selectedGroup.sections;
+
+    // Generate a random section index
+    const rSectionIndex = Math.floor(Math.random() * allSections.length);
+    const sectionId = allSections[rSectionIndex]._id;
+
+    const studentInfo = new StudentNew({
+      name: updatedDoc.name,
+      _id: updatedDoc._id,
+      studentId: updatedDoc._id,
+      schoolCode,
+      session: {
+        courseId: selectedCourse._id,
+      },
+    });
+
+    const student01 = await studentInfo.save();
+
+    // Push the student into the randomly selected section
+    await SectionNew.findByIdAndUpdate(
+      sectionId,
+      { $push: { students: student01._id } },
+      { new: true, useFindAndModify: false }
+    );
+
+    // Remove student from admissions and add to students list
+    school.admissions = school.admissions.filter(
+      (adm) => adm._id.toString() !== _id
+    );
+
+    // update students field from admissions with the correct course, group and section
+    const student2 = JSON.parse(JSON.stringify(student));
+    student2.course.section = allSections[rSectionIndex]._id;
+    student2.course.class = selectedCourse._id;
+    student2.course.group = selectedGroup._id;
+    school.students.push(student2);
+
+    await Promise.all([student.save(), school.save()]);
+    sendMail(mailOptions);
+
+    next();
+  } catch (e) {
+    res.status(500).send({
+      success: false,
+      status: "Something went wrong",
+      message: e.message,
+    });
+    return;
+  }
+};
+
+//accept school admission
+const acceptAdmission = async (req, res, next) => {
+  try {
+    const { schoolCode, _id } = req.params;
+
+    const school = await School.findOne({ schoolCode }).populate({
+      path: "course2",
+      populate: {
+        path: "groups",
+        populate: {
+          path: "sections",
+          populate: {
+            path: "students",
+          },
+        },
+      },
+    });
+    if (!school) {
+      return res.status(404).send({
+        success: false,
+        status: "School not found",
+        message: `The school you are looking for isn't found. Try checking your schoolCode `,
+      });
+    }
+
+    if (!school.admissions.find((adm) => adm._id.toString() == _id)) {
+      throw new Error("Student is not in waiting...");
+    }
+
+    let student = await Student.findOne({ _id, schoolCode });
+    if (!student) {
+      return res.status(400).send({
+        success: false,
+        status: "Student Not Found",
+        message: "The student you are trying to admit doesn't exist",
+      });
+    }
+
+    student.status = "active";
+
+    function generateOTP() {
+      const characters = "0123456789abcdefghijklmnopqrstuvwxyz";
+      let otp = "";
+      for (let i = 0; i < 8; i++) {
+        otp += characters[Math.floor(Math.random() * characters.length)];
+      }
+      return otp;
+    }
+
+    let tempPass = generateOTP();
+    student.password = tempPass;
+
+    const mailOptions = {
+      from: process.env.EMAIL_ID1,
+      to: student.email,
+      subject: `Scholib account created || Login to ${school.name}`,
+      html: `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>School account created </title>
+      <style>
+          body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            background-color: #4CAF50;
+            padding: 10px;
+            border-radius: 10px 10px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            color: #ffffff;
+        }
+        .content {
+            padding: 20px;
+        }
+        .content p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333333;
+        }
+        .login-details {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #dddddd;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            color: #777777;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Welcome to Scholib!</h1>
+        </div>
+        <div class="content">
+            <p>Dear ${student.name},</p>
+            <p>Your scholib account has been created. Now you can login to your school through the following credentials</p>
+            <p>Visit scholib.com and login through the following credentials</p>
+            <div class="login-details">
+                <p><strong>School Code:</strong> ${school.schoolCode}</p>
+                <p><strong>Login ID:</strong> ${student.loginId}</p>
+                <p><strong>Password:</strong> ${tempPass}</p>
+            </div>
+            <p>Please keep this information secure and do not share it with anyone.</p>
+            <p>Best regards,<br>Scholib.com</p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2024 Scholib.com. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+      `,
+    };
+
+    const courseId = student.course.class;
+    const groupId = student.course.group;
+    const course = school.course2;
+
+    // Find the course with the provided courseId
+    const selectedCourse = course.find(
+      (crc) => crc.courseId.toString() === courseId
+    );
+    if (!selectedCourse) {
+      throw new Error("Course not found");
+    }
+
+    // Find the group with the provided groupId
+    const selectedGroup = selectedCourse.groups.find(
+      (grp) => grp.groupId.toString() === groupId
+    );
+    if (!selectedGroup) {
+      throw new Error("Group not found");
+    }
+
+    // Get all sections from the selected group
+    const allSections = selectedGroup.sections;
+
+    // Generate a random section index
+    const rSectionIndex = Math.floor(Math.random() * allSections.length);
+    const sectionId = allSections[rSectionIndex]._id;
+
+    const studentInfo = new StudentNew({
+      name: student.name,
+      schoolCode,
+      _id: student._id,
+      studentId: student._id,
+      session: {
+        courseId: selectedCourse._id,
+      },
+    });
+
+    const student01 = await studentInfo.save();
+
+    // Push the student into the randomly selected section
+    await SectionNew.findByIdAndUpdate(
+      sectionId,
+      { $push: { students: student01._id } },
+      { new: true, useFindAndModify: false }
+    );
+
+    // Remove student from admissions and add to students list
+    school.admissions = school.admissions.filter(
+      (adm) => adm._id.toString() !== _id
+    );
+
+    // update students field from admissions with the correct course, group and section
+    const student2 = JSON.parse(JSON.stringify(student));
+    student2.course.section = allSections[rSectionIndex]._id;
+    student2.course.class = selectedCourse._id;
+    student2.course.group = selectedGroup._id;
+    school.students.push(student2);
+
+    await Promise.all([student.save(), school.save()]);
+    sendMail(mailOptions);
+
+    next();
+  } catch (e) {
+    console.error("Error:", e);
+    res.status(500).send({
+      success: false,
+      status: "Something went wrong",
+      message: e.message,
+    });
+  }
+};
+
 //delete school admission
 const deleteAdmission = async (req, res, next) => {
   try {
     const { schoolCode, _id } = req.params;
+
+    const school = await School.findOne({ schoolCode });
+
+    if (!school) {
+      return res.status(404).send({
+        success: false,
+        status: "School not found",
+        message: `The school you are looking for isn't found. Try checking your schoolCode `,
+      });
+    }
+
+    if (!school.admissions.find((adm) => adm._id.toString() == _id)) {
+      throw new Error("Student is not in waiting...");
+    }
+
+    let student = await Student.findOne({ _id, schoolCode });
+    if (!student) {
+      return res.status(400).send({
+        success: false,
+        status: "Student Not Found",
+        message: "The student you are trying to admit doesn't exist",
+      });
+    }
 
     await Promise.all([
       School.updateOne(
@@ -28,6 +529,89 @@ const deleteAdmission = async (req, res, next) => {
       ),
       Student.findByIdAndDelete({ schoolCode, _id }),
     ]);
+
+    const mailOptions = {
+      from: process.env.EMAIL_ID1,
+      to: student.email,
+      subject: `Admission Rejected || ${school.name}`,
+      html: `
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title> Unfortunately ${school.name} has decided to reject your admission request </title>
+      <style>
+          body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            background-color: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+            text-align: center;
+            background-color: red;
+            padding: 10px;
+            border-radius: 10px 10px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            color: #ffffff;
+        }
+        .content {
+            padding: 20px;
+        }
+        .content p {
+            font-size: 16px;
+            line-height: 1.6;
+            color: #333333;
+        }
+        .login-details {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border: 1px solid #dddddd;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .footer {
+            text-align: center;
+            font-size: 14px;
+            color: #777777;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Admission request Rejected</h1>
+        </div>
+        <div class="content">
+            <p>Dear ${student.name},</p>
+            <p>Your request to admit in ${school.name} has been rejected.</p>
+            <p>Please contact ${school.name} for further details regarding your admission request rejection. </p>
+
+            <p>Best regards,<br>Scholib.com</p>
+        </div>
+        <div class="footer">
+            <p>&copy; 2024 Scholib.com. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
+
+      `,
+    };
+
+    sendMail(mailOptions);
 
     next();
   } catch (e) {
@@ -114,6 +698,8 @@ async function getStudentFromCourse(req, res, next) {
 //   }
 // }
 
+
+
 // This one is the test version of this and i assume it works great here
 async function getStudentExamInfo(req, res, next) {
   try {
@@ -155,7 +741,7 @@ async function addFine(req, res, next) {
     const { _id, schoolCode } = req.params;
     const classId = req.query.classId;
     const fineAmount = req.query.fineAmount;
-    const remark = req.query.remark || 'N/A';
+    const remark = req.query.remark || "N/A";
 
     if (fineAmount < 0) {
       throw new Error("Fine cannot be less than 0");
@@ -200,7 +786,7 @@ async function addDiscount(req, res, next) {
 
     const classId = req.query.classId;
     const discountAmount = req.query.discountAmount;
-    const remark = req.query.remark || 'N/A';
+    const remark = req.query.remark || "N/A";
 
     if (discountAmount < 0) {
       throw new Error("Discount cannot be less than 0");
@@ -970,484 +1556,6 @@ async function deleteStudent(req, res, next) {
     });
   }
 }
-
-//accept school admission
-const acceptAdmission = async (req, res, next) => {
-  try {
-    const { schoolCode, _id } = req.params;
-
-    const school = await School.findOne({ schoolCode }).populate({
-      path: "course2",
-      populate: {
-        path: "groups",
-        populate: {
-          path: "sections",
-          populate: {
-            path: "students",
-          },
-        },
-      },
-    });
-    if (!school) {
-      return res.status(404).send({
-        success: false,
-        status: "School not found",
-        message: `The school you are looking for isn't found. Try checking your schoolCode `,
-      });
-    }
-
-    if (!school.admissions.find((adm) => adm._id.toString() == _id)) {
-      throw new Error("Student is not in waiting...");
-    }
-
-    let student = await Student.findOne({ _id, schoolCode });
-    if (!student) {
-      return res.status(400).send({
-        success: false,
-        status: "Student Not Found",
-        message: "The student you are trying to admit doesn't exist",
-      });
-    }
-
-    student.status = "active";
-
-    function generateOTP() {
-      const characters = "0123456789abcdefghijklmnopqrstuvwxyz";
-      let otp = "";
-      for (let i = 0; i < 8; i++) {
-        otp += characters[Math.floor(Math.random() * characters.length)];
-      }
-      return otp;
-    }
-
-    let tempPass = generateOTP();
-    student.password = tempPass;
-
-    const mailOptions = {
-      from: process.env.EMAIL_ID1,
-      to: student.email,
-      subject: `Scholib account created || Login to ${school.name}`,
-      html: `
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>School account created </title>
-      <style>
-          body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        .header {
-            text-align: center;
-            background-color: #4CAF50;
-            padding: 10px;
-            border-radius: 10px 10px 0 0;
-        }
-        .header h1 {
-            margin: 0;
-            color: #ffffff;
-        }
-        .content {
-            padding: 20px;
-        }
-        .content p {
-            font-size: 16px;
-            line-height: 1.6;
-            color: #333333;
-        }
-        .login-details {
-            background-color: #f9f9f9;
-            padding: 10px;
-            border: 1px solid #dddddd;
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-        .footer {
-            text-align: center;
-            font-size: 14px;
-            color: #777777;
-            margin-top: 20px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Welcome to Scholib!</h1>
-        </div>
-        <div class="content">
-            <p>Dear ${student.name},</p>
-            <p>Your scholib account has been created. Now you can login to your school through the following credentials</p>
-            <p>Visit scholib.com and login through the following credentials</p>
-            <div class="login-details">
-                <p><strong>School Code:</strong> ${school.schoolCode}</p>
-                <p><strong>Login ID:</strong> ${student.loginId}</p>
-                <p><strong>Password:</strong> ${tempPass}</p>
-            </div>
-            <p>Please keep this information secure and do not share it with anyone.</p>
-            <p>Best regards,<br>Scholib.com</p>
-        </div>
-        <div class="footer">
-            <p>&copy; 2024 Scholib.com. All rights reserved.</p>
-        </div>
-    </div>
-</body>
-</html>
-
-      `,
-    };
-
-    const courseId = student.course.class;
-    const groupId = student.course.group;
-    const course = school.course2;
-
-    // Find the course with the provided courseId
-    const selectedCourse = course.find(
-      (crc) => crc.courseId.toString() === courseId
-    );
-    if (!selectedCourse) {
-      throw new Error("Course not found");
-    }
-
-    // Find the group with the provided groupId
-    const selectedGroup = selectedCourse.groups.find(
-      (grp) => grp.groupId.toString() === groupId
-    );
-    if (!selectedGroup) {
-      throw new Error("Group not found");
-    }
-
-    // Get all sections from the selected group
-    const allSections = selectedGroup.sections;
-
-    // Generate a random section index
-    const rSectionIndex = Math.floor(Math.random() * allSections.length);
-    const sectionId = allSections[rSectionIndex]._id;
-
-    const studentInfo = new StudentNew({
-      name: student.name,
-      schoolCode,
-      _id: student._id,
-      studentId: student._id,
-      session: {
-        courseId: selectedCourse._id,
-      },
-    });
-
-    const student01 = await studentInfo.save();
-
-    // Push the student into the randomly selected section
-    await SectionNew.findByIdAndUpdate(
-      sectionId,
-      { $push: { students: student01._id } },
-      { new: true, useFindAndModify: false }
-    );
-
-    // Remove student from admissions and add to students list
-    school.admissions = school.admissions.filter(
-      (adm) => adm._id.toString() !== _id
-    );
-
-    // update students field from admissions with the correct course, group and section
-    const student2 = JSON.parse(JSON.stringify(student));
-    student2.course.section = allSections[rSectionIndex]._id;
-    student2.course.class = selectedCourse._id;
-    student2.course.group = selectedGroup._id;
-    school.students.push(student2);
-
-    await Promise.all([student.save(), school.save()]);
-    sendMail(mailOptions);
-
-    next();
-  } catch (e) {
-    console.error("Error:", e);
-    res.status(500).send({
-      success: false,
-      status: "Something went wrong",
-      message: e.message,
-    });
-  }
-};
-
-//Update and Accept School Admission
-const updateAndAcceptAdmission = async (req, res, next) => {
-  try {
-    const { schoolCode, _id } = req.params;
-
-    const school = await School.findOne({ schoolCode }).populate({
-      path: "course2",
-      populate: {
-        path: "groups",
-        populate: {
-          path: "sections",
-          populate: {
-            path: "students",
-          },
-        },
-      },
-    });
-    if (!school) {
-      return res.status(404).send({
-        success: false,
-        status: "School not found",
-        message: `The school you are looking for isn't found. Try checking your schoolCode `,
-      });
-    }
-
-    if (!school.admissions.find((adm) => adm._id.toString() == _id)) {
-      throw new Error("Student is not in waiting...");
-    }
-
-    const studentData = JSON.parse(req.body.student);
-    const bus = studentData.bus;
-    studentData.status = "active";
-
-    //some checkups
-    studentData.schoolCode = schoolCode;
-    delete studentData.year;
-    delete studentData.amount;
-    delete studentData.scholarship;
-    delete studentData.paymentHistory;
-    delete studentData.result;
-    delete studentData.absentdays;
-    delete studentData.library;
-    delete studentData.scholib;
-    delete studentData.tokens;
-
-    delete studentData.bus;
-
-    // some photo works
-
-    if (req.files["photo1"]) {
-      studentData.photo1 = await photoWork(req.files["photo1"][0]);
-    }
-
-    if (req.files["photo2"]) {
-      studentData.photo2 = await photoWork(req.files["photo2"][0]);
-    }
-
-    if (req.files["photo3"]) {
-      studentData.photo3 = await photoWork(req.files["photo3"][0]);
-    }
-
-    if (req.files["photo4"]) {
-      studentData.photo4 = await photoWork(req.files["photo4"][0]);
-    }
-
-    // here in studentData i have to check for the nearest place from the school and add the bus fee here in studentData.bus.location and studentData.bus.amount
-
-    const busPlace = school.busFee.map((obj) => {
-      return obj.location.toString() === bus;
-    });
-
-    if (busPlace && busPlace.loaction) {
-      studentData.bus = [
-        {
-          place: busPlace.location,
-          start: getDate().fullDate,
-        },
-      ];
-    }
-
-    function generateOTP() {
-      const characters = "0123456789abcdefghijklmnopqrstuvwxyz";
-      let otp = "";
-      for (let i = 0; i < 8; i++) {
-        otp += characters[Math.floor(Math.random() * characters.length)];
-      }
-      return otp;
-    }
-
-    let tempPass = generateOTP();
-    studentData.password = tempPass;
-
-    let student = await Student.findOne({ _id, schoolCode });
-
-    Object.assign(student, studentData);
-    let updatedDoc1 = await student.save();
-
-    if (!updatedDoc1) {
-      return res.status(404).send({
-        success: false,
-        status: "Student not found",
-        message: "The student you are looking for doesn't exists",
-      });
-    }
-
-    const mailOptions = {
-      from: process.env.EMAIL_ID1,
-      to: updatedDoc1.email,
-      subject: `Scholib account created || Login to ${school.name}`,
-      html: `
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>School account created </title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f4f4f4;
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 600px;
-            margin: 20px auto;
-            background-color: #ffffff;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        .header {
-            text-align: center;
-            background-color: #4CAF50;
-            padding: 10px;
-            border-radius: 10px 10px 0 0;
-        }
-        .header h1 {
-            margin: 0;
-            color: #ffffff;
-        }
-        .content {
-            padding: 20px;
-        }
-        .content p {
-            font-size: 16px;
-            line-height: 1.6;
-            color: #333333;
-        }
-        .login-details {
-            background-color: #f9f9f9;
-            padding: 10px;
-            border: 1px solid #dddddd;
-            border-radius: 5px;
-            margin-top: 20px;
-        }
-        .footer {
-            text-align: center;
-            font-size: 14px;
-            color: #777777;
-            margin-top: 20px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>Welcome to Scholib!</h1>
-        </div>
-        <div class="content">
-            <p>Dear ${updatedDoc1.name},</p>
-            <p>Your scholib account has been created. Now you can login to your school through the following credentials</p>
-            <p>Visit scholib.com and login through the following credentials</p>
-            <div class="login-details">
-                <p><strong>School Code:</strong> ${school.schoolCode}</p>
-                <p><strong>Login ID:</strong> ${updatedDoc1.loginId}</p>
-                <p><strong>Password:</strong> ${tempPass}</p>
-            </div>
-            <p>Please keep this information secure and do not share it with anyone.</p>
-            <p>Best regards,<br>Scholib.com</p>
-        </div>
-        <div class="footer">
-            <p>&copy; 2024 Scholib.com. All rights reserved.</p>
-        </div>
-    </div>
-</body>
-</html>
-
-      `,
-    };
-
-    sendMail(mailOptions);
-
-    let updatedDoc = JSON.parse(JSON.stringify(updatedDoc1));
-
-    const courseId = updatedDoc.course.class;
-    const groupId = updatedDoc.course.group;
-
-    const course = school.course2;
-
-    // Find the course with the provided courseId
-    const selectedCourse = course.find(
-      (crc) => crc.courseId.toString() === courseId
-    );
-    if (!selectedCourse) {
-      throw new Error("Course not found");
-    }
-
-    // Find the group with the provided groupId
-    const selectedGroup = selectedCourse.groups.find(
-      (grp) => grp.groupId.toString() === groupId
-    );
-    if (!selectedGroup) {
-      throw new Error("Group not found");
-    }
-
-    // Get all sections from the selected group
-    const allSections = selectedGroup.sections;
-
-    // Generate a random section index
-    const rSectionIndex = Math.floor(Math.random() * allSections.length);
-    const sectionId = allSections[rSectionIndex]._id;
-
-    const studentInfo = new StudentNew({
-      name: updatedDoc.name,
-      _id: updatedDoc._id,
-      studentId: updatedDoc._id,
-      schoolCode,
-      session: {
-        courseId: selectedCourse._id,
-      },
-    });
-
-    const student01 = await studentInfo.save();
-
-    // Push the student into the randomly selected section
-    await SectionNew.findByIdAndUpdate(
-      sectionId,
-      { $push: { students: student01._id } },
-      { new: true, useFindAndModify: false }
-    );
-
-    // Remove student from admissions and add to students list
-    school.admissions = school.admissions.filter(
-      (adm) => adm._id.toString() !== _id
-    );
-
-    // update students field from admissions with the correct course, group and section
-    const student2 = JSON.parse(JSON.stringify(student));
-    student2.course.section = allSections[rSectionIndex]._id;
-    student2.course.class = selectedCourse._id;
-    student2.course.group = selectedGroup._id;
-    school.students.push(student2);
-
-    await Promise.all([student.save(), school.save()]);
-    sendMail(mailOptions);
-
-    next();
-  } catch (e) {
-    res.status(500).send({
-      success: false,
-      status: "Something went wrong",
-      message: e.message,
-    });
-    return;
-  }
-};
 
 // Update particular student exam info
 async function updateParticularStudentMarks(req, res, next) {

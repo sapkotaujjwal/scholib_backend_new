@@ -4,10 +4,10 @@
   "description": "This is the official scholib backend code written by mr. ujjwal sapkoyta",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node newServer.js",
     "dev": "nodemon server.js",
-    "dev2": "nodemon newServer.js"
+    "dev2": "nodemon newServer.js",
+    "test": "nodemon testingServer.js"
   },
   "author": "ujjwal sapkota",
   "license": "ISC",
