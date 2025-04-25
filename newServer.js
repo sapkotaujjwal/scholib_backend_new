@@ -10,6 +10,8 @@ const http = require("http");
 
 const app = express();
 
+const status = process.env.STATUS || "development";
+
 // Middlewares
 app.use(express.json());
 app.use(cookieParser());
@@ -41,9 +43,15 @@ const staffRoute = require("./routes/staffRoute");
 const studentRoute = require("./routes/studentRoutes");
 const adminStudentRoute = require("./routes/adminForStudentRoute");
 
-connectDb(process.env.DB_URI);
 
-// connectDb();
+if(status === "development") {
+  connectDb(process.env.DB_URI_DEVELOPMENT);
+}
+
+if(status === "production") {
+  connectDb(process.env.DB_URI_PRODUCTION);
+}
+
 
 // Routes Usage
 app.use("/mutual", mutualRoute);
@@ -64,24 +72,27 @@ app.all("*", (req, res) => {
   });
 });
 
-// HTTPS Server
-const credentials = {
-  key: fs.readFileSync("./test/server.key"),
-  cert: fs.readFileSync("./test/server.cert"), // or server.pem
-};
+// for development
 
-// for test
+if (status === "development") {
 
-const httpsServer = https.createServer(credentials, app);
-httpsServer.listen(process.env.PORT || 3000, () => {
-  console.log("HTTPS Server is running on port", process.env.PORT || 3000);
-});
+  const credentials = {
+    key: fs.readFileSync("./test/server.key"),
+    cert: fs.readFileSync("./test/server.cert"), // or server.pem
+  };
 
 
+  const httpsServer = https.createServer(credentials, app);
+  httpsServer.listen(process.env.PORT || 3000, () => {
+    console.log("HTTPS Server is running on port", process.env.PORT || 3000);
+  });
+}
 
 // for production
 
-// const httpServer = http.createServer(app);
-// httpServer.listen(process.env.PORT || 3000, () => {
-//   console.log("HTTP Server is running on port", process.env.PORT || 3000);
-// });
+if (status === "production") {
+  const httpServer = http.createServer(app);
+  httpServer.listen(process.env.PORT || 3000, () => {
+    console.log("HTTP Server is running on port", process.env.PORT || 3000);
+  });
+}
