@@ -24,6 +24,81 @@ const createCourse2 = async (req, res, next) => {
       });
     }
 
+    function validateClassData(data) {
+      const errors = [];
+
+      if(!data.class || data.subjects.length === 0 || data.groups.length === 0) {
+        errors.push("Class Name, Subjects, and Groups are required.");
+      }
+
+      const expectedNames = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+      const globalSubjects = new Set(data.subjects || []);
+      const groupNames = new Set();
+      const sectionNames = new Set();
+
+      data.groups.forEach((group, groupIndex) => {
+        const groupName = group.name;
+
+        // Rule 1: Each group must have at least one section
+        if (!group.sections || group.sections.length === 0) {
+          errors.push(`Group '${groupName}' must have at least one section.`);
+        }
+
+        // Rule 2: Group names must be unique
+        if (groupNames.has(groupName)) {
+          errors.push(`Duplicate group name found: '${groupName}'`);
+        }
+        groupNames.add(groupName);
+
+        // Rule 3: Group names must follow A, B, C...
+        if (groupName !== expectedNames[groupIndex]) {
+          errors.push(
+            `Group name '${groupName}' is out of expected order. Expected '${expectedNames[groupIndex]}'`
+          );
+        }
+
+        // Check each section
+        (group.sections || []).forEach((section, sectionIndex) => {
+          const sectionName = section.name;
+
+          // Rule 4: Section names must be globally unique
+          if (sectionNames.has(sectionName)) {
+            errors.push(`Duplicate section name found: '${sectionName}'`);
+          }
+          sectionNames.add(sectionName);
+
+          // Rule 5: Section names must follow A, B, C...
+          const expectedSectionName = expectedNames[sectionNames.size - 1];
+          if (sectionName !== expectedSectionName) {
+            errors.push(
+              `Section name '${sectionName}' is out of expected order. Expected '${expectedSectionName}'`
+            );
+          }
+
+          // Rule 6: All subjects in section must exist in global subjects
+          (section.subjects || []).forEach((sub) => {
+            if (!globalSubjects.has(sub.subject)) {
+              errors.push(
+                `Subject '${sub.subject}' in section '${sectionName}' is not in the top-level subjects array.`
+              );
+            }
+          });
+        });
+      });
+
+      return errors;
+    }
+
+    const validationErrors = validateClassData(data);
+
+    if (validationErrors.length > 0) {
+      return res.status(400).send({
+        success: false,
+        status: "Validation Error",
+        message: validationErrors.join(", "),
+      });
+    }
+
     // add the object to the course
     const createdCourse = await School.findOneAndUpdate(
       { schoolCode },
@@ -595,8 +670,6 @@ const updateBusRoute = async (req, res, next) => {
     const { schoolCode, _id } = req.params;
     const data = req.body;
 
-  
-
     const updatedSchool = await School.findOneAndUpdate(
       { schoolCode, "busFee._id": _id },
       {
@@ -605,14 +678,15 @@ const updateBusRoute = async (req, res, next) => {
         },
         $push: {
           "busFee.$.amounts": {
-            $each: [{ date: getDate().fullDate, amount: parseInt(data.amount) }],
+            $each: [
+              { date: getDate().fullDate, amount: parseInt(data.amount) },
+            ],
             $position: 0,
           },
         },
       },
       { new: true, projection: { busFee: 1, _id: 0 } } // Return only busFee, exclude _id
     );
-    
 
     req.data = updatedSchool.busFee;
 
