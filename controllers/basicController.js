@@ -18,7 +18,7 @@ const findSchoolHome = async (req, res, next) => {
     });
 
     if (!req.school) {
-      res.status(404).send({
+     return res.status(404).send({
         success: false,
         status: "School Not Found",
         message: "The schoolCode you provided does not exists... ",
