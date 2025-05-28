@@ -485,6 +485,17 @@ const schoolSchema = new mongoose.Schema({
       next: {
         type: String,
       },
+      duration: {
+        type: Number,
+        min: 1,
+        max: 12,
+      },
+
+      sessions: [
+        {
+          type: String,
+        },
+      ],
     },
   ],
 

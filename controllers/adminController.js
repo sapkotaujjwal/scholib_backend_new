@@ -31,6 +31,10 @@ const createCourse2 = async (req, res, next) => {
         errors.push("Class Name, Subjects, and Groups are required.");
       }
 
+      if(data.duration < 1 || data.duration > 12) {
+        errors.push("Duration must be between 1 and 12 months.");
+      }
+
       const expectedNames = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
       const globalSubjects = new Set(data.subjects || []);
       const groupNames = new Set();

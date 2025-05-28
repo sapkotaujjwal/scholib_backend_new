@@ -12,10 +12,14 @@ const {
   StudentNew,
 } = require("../schemas/courseSchema");
 
+
+
 const startNewSession = async (req, res, next) => {
   const session = await mongoose.startSession();
-
+  const date = getDate().fullDate;
+  
   try {
+
     session.startTransaction();
 
     const { schoolCode } = req.params;
@@ -518,6 +522,10 @@ const startNewSession = async (req, res, next) => {
           school.course2.push(savedCourse._id);
         }
       }
+
+      // Add the session to track date
+      crc.sessions.push(date);
+
     }
 
     await school.save({ session });
