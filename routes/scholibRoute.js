@@ -53,13 +53,13 @@ router.get("/company", findCompany, (req, res) => {
 
 // Create new Scholib team member
 
-// router.post("/users/new", signinController, (req, res) => {
-//   const user = req.user;
-//   res.status(201).send({
-//     success: true,
-//     data: user,
-//   });
-// });
+router.post("/users/new", signinController, (req, res) => {
+  const user = req.user;
+  res.status(201).send({
+    success: true,
+    data: user,
+  });
+});
 
 //create company
 
@@ -77,7 +77,6 @@ router.get("/company", findCompany, (req, res) => {
 // );
 
 //update company
-
 // router.put(
 //   "/company/update",
 //   loginController,

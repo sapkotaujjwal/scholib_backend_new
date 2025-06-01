@@ -1,5 +1,5 @@
 const { School } = require("../schemas/schoolSchema");
-const Scholib = require("../schemas/scholibSchema");
+const ScholibStaffs = require("../schemas/scholibStaffsSchema");
 const Staff = require("../schemas/staffSchema");
 const bcrypt = require("bcrypt");
 const Gallery = require("../schemas/gallerySchema");
@@ -289,7 +289,7 @@ async function updateCompany(req, res, next) {
 const signinController = async (req, res, next) => {
   try {
     const user = req.body;
-    const data = new Scholib(user);
+    const data = new ScholibStaffs(user);
     req.user = await data.save();
     next();
   } catch (error) {
@@ -305,7 +305,7 @@ const signinController = async (req, res, next) => {
 const loginController = async (req, res, next) => {
   try {
     const { loginId, password } = req.body.admin;
-    const user = await Scholib.findOne({ loginId });
+    const user = await ScholibStaffs.findOne({ loginId });
     if (!user) {
       return res.status(401).send({
         success: false,

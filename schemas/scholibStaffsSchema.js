@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const { getDate } = require("../config/nepaliDate");
 
-const scholibSchema = new mongoose.Schema({
+const scholibStaffsSchema = new mongoose.Schema({
   name: {
     type: String,
     required: [true, "Name is required"],
@@ -35,7 +35,7 @@ const scholibSchema = new mongoose.Schema({
 });
 
 // Hash password before saving
-scholibSchema.pre("save", async function (next) {
+scholibStaffsSchema.pre("save", async function (next) {
   try {
     if (!this.isModified("password")) {
       return next();
@@ -51,7 +51,7 @@ scholibSchema.pre("save", async function (next) {
 });
 
 // Pre-save hook
-scholibSchema.pre("save", async function (next) {
+scholibStaffsSchema.pre("save", async function (next) {
   if (this.isNew) {
     // Only generate code during creation
     let uniqueCode = await generateUniqueCode(this.constructor);
@@ -72,5 +72,5 @@ async function generateUniqueCode(model) {
   }
 }
 
-const Scholib = mongoose.model("Scholib", scholibSchema);
-module.exports = Scholib;
+const ScholibStaffs = mongoose.model("ScholibStaffs", scholibStaffsSchema);
+module.exports = ScholibStaffs;
