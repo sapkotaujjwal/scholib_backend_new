@@ -10,7 +10,7 @@ const scholibStaffsSchema = new mongoose.Schema({
     minlength: [2, "Name should be at least of two characters"],
     maxlength: [80, "Name cannot excedd 80 characters"],
   },
-  logo: {
+  photo: {
     secure_url: {
       type: String,
     },
@@ -30,6 +30,47 @@ const scholibStaffsSchema = new mongoose.Schema({
     default: function () {
       const date = getDate();
       return date.fullDate;
+    },
+  },
+  loginHistory: [
+    {
+      loginTime: {
+        type: String,
+        required: true,
+        default: function () {
+          const date = getDate();
+          return date.fullDate;
+        },
+      },
+      deviceInfo: {
+        type: String,
+        required: true,
+      },
+    },
+  ],
+  email: {
+    type: String,
+    required: [true, "Email is required"],
+    unique: true,
+    trim: true,
+    lowercase: true,
+    validate: {
+      validator: function (v) {
+        return /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(v);
+      },
+      message: (props) => `${props.value} is not a valid email!`,
+    },
+  },
+  phone: {
+    type: String,
+    required: [true, "Phone number is required"],
+    unique: true,
+    trim: true,
+    validate: {
+      validator: function (v) {
+        return /^\d{10}$/.test(v);
+      },
+      message: (props) => `${props.value} is not a valid phone number!`,
     },
   },
 });
