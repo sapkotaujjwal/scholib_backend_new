@@ -148,7 +148,7 @@ const companySchema = new mongoose.Schema({
         required: true,
       },
       joinedOn: {
-        type: String,
+        type: Date,
         default: function () {
           const date = getDate();
           return date.fullDate;

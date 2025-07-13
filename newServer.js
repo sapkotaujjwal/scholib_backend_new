@@ -43,15 +43,13 @@ const staffRoute = require("./routes/staffRoute");
 const studentRoute = require("./routes/studentRoutes");
 const adminStudentRoute = require("./routes/adminForStudentRoute");
 
-
-if(status === "development") {
+if (status === "development") {
   connectDb(process.env.DB_URI_DEVELOPMENT);
 }
 
-if(status === "production") {
+if (status === "production") {
   connectDb(process.env.DB_URI_PRODUCTION);
 }
-
 
 // Routes Usage
 app.use("/mutual", mutualRoute);
@@ -75,12 +73,10 @@ app.all("*", (req, res) => {
 // for development
 
 if (status === "development") {
-
   const credentials = {
     key: fs.readFileSync("./test/server.key"),
     cert: fs.readFileSync("./test/server.cert"), // or server.pem
   };
-
 
   const httpsServer = https.createServer(credentials, app);
   httpsServer.listen(process.env.PORT || 3000, () => {

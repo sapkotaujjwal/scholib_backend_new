@@ -4,7 +4,6 @@ const Student = require("../schemas/studentSchema");
 const { photoWork } = require("../config/photoWork");
 const {
   getDate,
-  getCurrentNepaliDate,
   isSameDay,
 } = require("../config/nepaliDate");
 
@@ -964,11 +963,11 @@ async function payFees(req, res, next) {
       throw new Error("Amount must be greater than 0");
     }
 
-    const dateAndTime = getCurrentNepaliDate();
+
 
     const objToAdd = {
-      date: dateAndTime.nepaliDate,
-      time: dateAndTime.nepaliTime,
+      date: getDate().fullDate,
+      // time: dateAndTime.nepaliTime,
       approvedBy: req.staff._id,
       amount: amount,
       remark: remark,
@@ -1082,7 +1081,7 @@ async function addBook(req, res, next) {
   } catch (e) {
     return res.status(500).send({
       success: false,
-      status: "Failed to add fine",
+      status: "Book failed to assign",
       message: e.message,
     });
   }

@@ -18,7 +18,7 @@ const updateSchema = new mongoose.Schema({
         maxlength: 10000,
       },
       date: {
-        type: String,
+        type: Date,
         required: true,
         default: function () {
           const date = getDate();

@@ -24,7 +24,7 @@ const staffSchema = new mongoose.Schema({
       type: String,
     },
   },
-  removedOn: { type: String },
+  removedOn: { type: Date },
 });
 
 const StudentSchemaNew = new mongoose.Schema({
@@ -360,7 +360,7 @@ const schoolSchema = new mongoose.Schema({
   reviews: [
     {
       date: {
-        type: String,
+        type: Date,
         default: function () {
           const date = getDate();
           return date.fullDate;
@@ -399,7 +399,7 @@ const schoolSchema = new mongoose.Schema({
       amounts: [
         {
           date: {
-            type: String,
+            type: Date,
           },
           amount: {
             type: Number,

@@ -15,8 +15,8 @@ const accountSchema = new mongoose.Schema({
   },
   paymentHistory: [
     {
-      date: String,
-      time: String,
+      date: Date,
+      // time: String,
       amount: Number,
       approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
       method: { type: String, enum: ["Cash", "Scholib"] },

@@ -1,5 +1,3 @@
-// ************ Here i am working here Nepali date soon i want it to be changed to UTC date and remove this comment ******************
-
 const { adToBs } = require("@sbmdkl/nepali-date-converter");
 
 function getCurrentNepaliDate() {
@@ -38,16 +36,12 @@ function getCurrentNepaliDate() {
 function getDate() {
   try {
     const utcDate = new Date();
-    const nepalTime = new Date(utcDate.getTime() + (5 * 60 + 45) * 60000);
-
-    const formattedNepalDate = nepalTime.toISOString().split("T")[0];
-
+    const formattedNepalDate = utcDate.toISOString().split("T")[0];
     const nepaliDateStr = adToBs(formattedNepalDate);
-
     const nepaliYear = parseInt(nepaliDateStr.split("-")[0]);
 
     const date = {
-      fullDate: nepaliDateStr,
+      fullDate: utcDate,
       year: nepaliYear,
     };
 

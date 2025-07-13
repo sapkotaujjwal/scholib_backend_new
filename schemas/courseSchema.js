@@ -14,7 +14,7 @@ const courseSchema = new mongoose.Schema({
     maxlength: 50,
   },
   startDate: {
-    type: String,
+    type: Date,
     default: function () {
       const date = getDate();
       return date.fullDate;
@@ -90,13 +90,13 @@ const studentSchema = new mongoose.Schema({
       roll: String,
       absentDays: [
         {
-          date: { type: String, default: getDate().fullDate },
+          date: { type: Date, default: getDate().fullDate },
           reason: { type: String, default: "unknown" },
         },
       ],
       discount: [
         {
-          date: String,
+          date: Date,
           approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
           amount: { type: Number, min: 0 },
           remark: { type: String, maxlength: 1000 },
@@ -104,7 +104,7 @@ const studentSchema = new mongoose.Schema({
       ],
       fine: [
         {
-          date: String,
+          date: Date,
           approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
           amount: { type: Number, min: 0 },
           remark: { type: String, maxlength: 1000 },
@@ -113,7 +113,7 @@ const studentSchema = new mongoose.Schema({
       previousLeft: { type: Number, default: 0 },
       paymentHistory: [
         {
-          date: String,
+          date: Date,
           time: String,
           amount: Number,
           approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Staff" },
@@ -123,7 +123,7 @@ const studentSchema = new mongoose.Schema({
       ],
       library: [
         {
-          date: String,
+          date: Date,
           book: {
             type: String,
             required: [true, "Book Name is required"],

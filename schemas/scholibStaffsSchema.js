@@ -25,7 +25,7 @@ const scholibStaffsSchema = new mongoose.Schema({
     type: String,
   },
   createdAt: {
-    type: String,
+    type: Date,
     required: true,
     default: function () {
       const date = getDate();
@@ -35,7 +35,7 @@ const scholibStaffsSchema = new mongoose.Schema({
   loginHistory: [
     {
       loginTime: {
-        type: String,
+        type: Date,
         required: true,
         default: function () {
           const date = getDate();
