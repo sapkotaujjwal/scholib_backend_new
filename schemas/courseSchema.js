@@ -58,7 +58,7 @@ const sectionSchema = new mongoose.Schema({
     required: true,
   },
   name: String,
-  workingDates: [String],
+  workingDates: [Date],
   sectionId: {
     type: String,
   },
@@ -144,7 +144,7 @@ const studentSchema = new mongoose.Schema({
       bus: [
         {
           place: String,
-          start: String,
+          start: Date,
           end: String,
         },
       ],

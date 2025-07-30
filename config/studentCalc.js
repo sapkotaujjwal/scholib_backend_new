@@ -1,5 +1,4 @@
 const { getDate } = require("./nepaliDate");
-const NepaliDate = require("nepali-date");
 
 // a="thatClassFee", b="school.busFee", c="student.session[0]", d='classStartDate'
 
@@ -27,32 +26,23 @@ function calculateStudentFee(a, b, c, d) {
   }
 
   function busFeeCalculator(
-    date = getDate().fullDate,
+    date = new Date(),
     dataArray,
     priceArray,
     date2 = "2080-01-01"
   ) {
-    const getDaysDifference = (date2, date1) => {
-      // Helper function to convert a Nepali date string to an AD date
-      const convertNepaliToAD = (nepaliDateString) => {
-        const nepaliDate = new NepaliDate(nepaliDateString);
+    const getDaysDifference = (date1, date2) => {
+      // Convert to Date objects if passed as strings
+      const d1 = new Date(date1);
+      const d2 = new Date(date2);
 
-        return nepaliDate.getEnglishDate(); // Returns a Date object
-      };
+      // Zero out the time part for both dates
+      d1.setHours(0, 0, 0, 0);
+      d2.setHours(0, 0, 0, 0);
 
-      // Convert both Nepali dates to AD
-      const adDate1 = convertNepaliToAD(date1);
-      const adDate2 = convertNepaliToAD(date2);
-
-      // Calculate the difference in milliseconds
-      const differenceInMilliseconds = adDate1 - adDate2;
-
-      // Convert milliseconds to days
-      const differenceInDays = Math.floor(
-        differenceInMilliseconds / (1000 * 60 * 60 * 24)
-      );
-
-      return differenceInDays;
+      // Calculate difference in milliseconds and convert to days
+      const msPerDay = 1000 * 60 * 60 * 24;
+      return Math.floor((d2 - d1) / msPerDay);
     };
 
     let totalPrice = 0;
@@ -74,10 +64,15 @@ function calculateStudentFee(a, b, c, d) {
 
         let endDate = end ? end : date; // Use provided end date or default to "date"
 
-        amounts.forEach((each, index) => {
+        // Sort amounts by date first (ascending order)
+        const sortedAmounts = amounts
+          .slice()
+          .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        sortedAmounts.forEach((each, index) => {
           const currentAmountStart = each.date;
-          const nextAmountStart = amounts[index + 1]
-            ? amounts[index + 1].date
+          const nextAmountStart = sortedAmounts[index + 1]
+            ? sortedAmounts[index + 1].date
             : null;
 
           // Determine the effective start and end for the current amount bracket
@@ -92,7 +87,7 @@ function calculateStudentFee(a, b, c, d) {
           const interval = getDaysDifference(effectiveStart, effectiveEnd);
 
           if (interval > 0) {
-            totalPrice += (each.amount / 30) * (interval + 1);
+            totalPrice += (each.amount / 30) * (interval > 0 ? interval : 1);
           }
         });
       }
