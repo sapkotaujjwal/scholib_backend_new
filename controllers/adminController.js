@@ -194,6 +194,9 @@ async function updateCourse(req, res, next) {
   }
 }
 
+
+
+
 // Add new Exam
 async function addExam(req, res, next) {
   try {
@@ -334,6 +337,11 @@ async function getExamInfo(req, res, next) {
     });
   }
 }
+
+
+
+
+
 
 async function deleteGallery(req, res, next) {
   try {

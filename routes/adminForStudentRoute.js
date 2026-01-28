@@ -301,6 +301,8 @@ router.delete(
   }
 );
 
+
+
 // Get the student exam info
 router.get(
   "/:schoolCode/student/:_id/exam",
@@ -330,6 +332,8 @@ router.post(
     });
   }
 );
+
+
 
 // Get students details of a class
 router.get(
