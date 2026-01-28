@@ -5,8 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node newServer.js",
-    "dev": "nodemon server.js",
-    "dev2": "nodemon newServer.js",
+    "dev": "nodemon newServer.js",
     "test": "nodemon testingServer.js"
   },
   "author": "ujjwal sapkota",
